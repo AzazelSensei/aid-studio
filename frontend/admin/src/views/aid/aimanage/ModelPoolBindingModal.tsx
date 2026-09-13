@@ -82,8 +82,7 @@ export default function ModelPoolBindingModal({ open, mode, models, snapshot, su
         if (model.id == null || pool.modelIds.includes(model.id)) return;
         const definitions = snapshotModelMap.get(model.id)?.capabilities || [];
         if (definitions.length === 0) return;
-        const capabilities = definitions.filter((capability) => capability.enabled
-          && (!pool.generateMode || capability.generateMode === pool.generateMode));
+        const capabilities = definitions.filter((capability) => capability.enabled);
         result.push({
           key: relationKey(model.id, pool.id),
           modelId: model.id,
@@ -251,7 +250,7 @@ export default function ModelPoolBindingModal({ open, mode, models, snapshot, su
         style={{ marginBottom: 14 }}
         message={mode === 'bind'
           ? '选择模型池后配置本次新增关系的能力。模型已声明唯一默认能力时会自动选中，已有业务绑定保持不变。'
-          : '移除关系不会删除模型；存在活动引用或会清空启用模型池时，服务端会拒绝操作。'}
+          : '移出不删除模型。有业务引用时，下一步预览影响并选择池内替代文本模型；不会自动更换模型，也不能清空启用模型池。'}
       />
       {mode === 'bind' && disabledModelCount > 0 && (
         <Alert

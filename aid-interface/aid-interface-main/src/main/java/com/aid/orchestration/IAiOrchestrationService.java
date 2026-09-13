@@ -16,6 +16,9 @@ public interface IAiOrchestrationService
     /** 校验模型池定义、编码不可变性以及现有活动引用。 */
     void validateFunctionConfig(AidAiModelFuncConfig config);
 
+    /** 在持有业务池锁的事务中校验并迁移本次移出文本模型的当前业务引用。 */
+    void prepareFunctionUpdate(AidAiModelFuncConfig config, String operator);
+
     /** 校验功能配置没有智能体、矩阵或项目级活动引用。 */
     void validateFunctionConfigsRemovable(Long[] ids);
 

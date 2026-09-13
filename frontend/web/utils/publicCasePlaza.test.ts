@@ -4,6 +4,7 @@ import {
   normalizePublicCaseCard,
   resolveActivePublicEpisode,
   resolvePublicProjectPlayback,
+  resolvePublicProjectAspectRatio,
   resolvePublicProjectType
 } from './publicCasePlaza'
 
@@ -46,5 +47,21 @@ describe('public case plaza presentation', () => {
       coverUrl: 'ep2.jpg'
     })
     expect(resolvePublicProjectPlayback(detail, 999).videoUrl).toBe('ep1.mp4')
+  })
+
+  it('uses the declared project aspect ratio for cards', () => {
+    expect(resolvePublicProjectAspectRatio('9:16')).toBe('9 / 16')
+    expect(resolvePublicProjectAspectRatio('21/9')).toBe('21 / 9')
+    expect(resolvePublicProjectAspectRatio('invalid')).toBe('16 / 9')
+
+    const card = normalizePublicCaseCard({
+      id: 31,
+      projectName: '竖屏项目',
+      projectType: 'movie',
+      aspectRatio: '9:16',
+      mediaWidth: 1920,
+      mediaHeight: 1080
+    } satisfies PublicProjectVideoRow)
+    expect(card.aspectRatio).toBe('9 / 16')
   })
 })

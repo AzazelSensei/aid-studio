@@ -13,6 +13,8 @@ import { download } from '@/utils/request';
 import { useDict } from '@/hooks/useDict';
 import ModelPoolSelector, { type PoolModel } from './ModelPoolSelector';
 import FunctionCapabilityEditor from './FunctionCapabilityEditor';
+import { confirmModelPoolRemoval } from './confirmModelPoolRemoval';
+import { normalizeFunctionCapabilityBindings, usesStructuredCapabilities } from './functionCapabilityBindings';
 import type { BusinessModelBinding } from '../aimanage/ModelBusinessBindingEditor';
 
 export default function FuncconfigPage() {
@@ -30,6 +32,7 @@ export default function FuncconfigPage() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [modelBindings, setModelBindings] = useState<BusinessModelBinding[]>([]);
+  const [activeCapabilityModel, setActiveCapabilityModel] = useState<number>();
   const [editingId, setEditingId] = useState<any>(null);
   const [editingData, setEditingData] = useState<any>(null);
   const dicts = useDict('one_or_zero');
@@ -85,6 +88,7 @@ export default function FuncconfigPage() {
     form.setFieldsValue({ status: '0' });
     setSelectedModels([]);
     setModelBindings([]);
+    setActiveCapabilityModel(undefined);
     setDlgTitle('新增功能配置');
     setDlgOpen(true);
   };
@@ -106,7 +110,8 @@ export default function FuncconfigPage() {
       .map((id) => byId.get(id) as PoolModel | undefined)
       .filter((model): model is PoolModel => Boolean(model));
     setSelectedModels(hydrated);
-    setModelBindings(data.modelBindings || []);
+    setModelBindings(normalizeFunctionCapabilityBindings(hydrated, data.modelBindings || []));
+    setActiveCapabilityModel(undefined);
     setDlgTitle('修改功能配置');
     setDlgOpen(true);
   };
@@ -128,8 +133,10 @@ export default function FuncconfigPage() {
     const values = await form.validateFields();
     if (selectedModels.length === 0) { message.error('请至少选择一个可用模型'); return; }
     const modelIds = JSON.stringify(selectedModels.map((m) => m.id));
-    for (const model of selectedModels.filter((item) => item.capabilities?.length)) {
+    for (const model of selectedModels.filter(usesStructuredCapabilities)) {
       if (modelBindings.filter((row) => row.modelId === model.id && row.defaultCapability).length !== 1) {
+        setActiveCapabilityModel(model.id);
+        requestAnimationFrame(() => document.getElementById(`model-capability-${model.id}`)?.scrollIntoView({ block: 'center' }));
         message.error(`请选择 ${model.modelName} 的业务能力及默认能力`); return;
       }
     }
@@ -137,7 +144,11 @@ export default function FuncconfigPage() {
     setSaving(true);
     try {
       if (editingId) {
-        await updateFuncconfig({ ...(editingData || {}), ...values, id: editingId, modelIds, modelBindings: bindings });
+        const oldIds: number[] = JSON.parse(editingData?.modelIds || '[]');
+        const removed = oldIds.filter((id) => !selectedModels.some((model) => model.id === id));
+        const replacements = await confirmModelPoolRemoval(removed, [Number(editingId)], selectedModels.map((model) => model.modelCode));
+        if (!replacements) return;
+        await updateFuncconfig({ ...(editingData || {}), ...values, id: editingId, modelIds, modelBindings: bindings, removedModelReplacementCode: replacements[editingId] || null });
         message.success('修改成功');
       } else {
         await addFuncconfig({ ...values, modelIds, modelBindings: bindings });
@@ -229,7 +240,7 @@ export default function FuncconfigPage() {
         />
       </Card>
 
-      <Modal open={dlgOpen} title={<Space><AppstoreOutlined style={{ color: '#2563eb' }} /><span>{dlgTitle}</span></Space>} onCancel={() => { if (!savingRef.current) setDlgOpen(false); }} onOk={handleSave} confirmLoading={saving} width={1180} destroyOnClose maskClosable={false}>
+      <Modal open={dlgOpen} title={<Space><AppstoreOutlined style={{ color: '#2563eb' }} /><span>{dlgTitle}</span></Space>} onCancel={() => { if (!savingRef.current) setDlgOpen(false); }} onOk={handleSave} confirmLoading={saving} width={1180} styles={{ body: { maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 } }} destroyOnClose maskClosable={false}>
         <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="funcName" label="功能名称" rules={[{ required: true, message: '功能名称不能为空' }]}><Input placeholder="如：图片编辑、图片高清" /></Form.Item></Col>
@@ -243,10 +254,13 @@ export default function FuncconfigPage() {
           <ModelPoolSelector
             pool={modelPool}
             selected={selectedModels}
-            onChange={setSelectedModels}
+            onChange={(models) => {
+              setSelectedModels(models);
+              setModelBindings((current) => normalizeFunctionCapabilityBindings(models, current));
+            }}
             providerNameMap={providerNameMap}
           />
-          <FunctionCapabilityEditor models={selectedModels} value={modelBindings} onChange={setModelBindings} />
+          <FunctionCapabilityEditor models={selectedModels} value={modelBindings} onChange={setModelBindings} activeModel={activeCapabilityModel} onActiveModelChange={setActiveCapabilityModel} />
 
           <Row gutter={16} style={{ marginTop: 16 }}>
             <Col span={12}><Form.Item name="status" label="状态" rules={[{ required: true }]}><Select options={statusDict.map((d: any) => ({ label: d.label, value: d.value }))} placeholder="请选择状态" /></Form.Item></Col>

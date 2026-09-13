@@ -19,6 +19,7 @@ import { type AgentConversationViewportHandle } from '~/components/common/agent-
 import AgentThinkingProcess from '~/components/common/agent-conversation/AgentThinkingProcess'
 import AgentResponseStoppedDivider from '~/components/common/agent-conversation/AgentResponseStoppedDivider'
 import StoryScriptAgentSkillPicker from '~/components/steps/story-script-agent/StoryScriptAgentSkillPicker'
+import StoryScriptAgentModelPicker from '~/components/steps/story-script-agent/StoryScriptAgentModelPicker'
 import StoryScriptAgentInputRequestCard from '~/components/steps/story-script-agent/StoryScriptAgentInputRequestCard'
 import type { StoryScriptAgentViewMessage } from '~/hooks/useStoryScriptAgent'
 import type {
@@ -50,6 +51,8 @@ interface StoryScriptAgentPanelProps {
   skills: UserSkillDefinition[]
   selectedSkillCode: string
   onSkillChange: (skillCode: string) => void
+  selectedModelCode: string
+  onModelChange: (modelCode: string) => void
   skillsLoading: boolean
   skillsError?: string
   onSkillsRequest?: () => void
@@ -377,6 +380,8 @@ export function StoryScriptAgentPanel({
   skills,
   selectedSkillCode,
   onSkillChange,
+  selectedModelCode,
+  onModelChange,
   skillsLoading,
   skillsError = '',
   onSkillsRequest,
@@ -432,7 +437,9 @@ export function StoryScriptAgentPanel({
       const activeElement = document.activeElement
       if (
         activeElement instanceof Element &&
-        activeElement.closest('.skill-picker-trigger, .skill-picker-popover')
+        activeElement.closest(
+          '.skill-picker-trigger, .skill-picker-popover, .story-agent-model-picker__trigger, .story-agent-model-picker__popover'
+        )
       ) {
         return
       }
@@ -600,6 +607,12 @@ export function StoryScriptAgentPanel({
                 disabled={sending || canRetry || paused}
                 onSelect={onSkillChange}
                 onRequestLoad={onSkillsRequest}
+              />
+              <StoryScriptAgentModelPicker
+                models={selectedSkill?.models ?? []}
+                selectedModelCode={selectedModelCode}
+                disabled={sending || canRetry || paused}
+                onSelect={onModelChange}
               />
               <div className="story-script-agent-panel__composer-actions">
                 <ComposerSendButton

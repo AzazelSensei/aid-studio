@@ -3,8 +3,10 @@ import {
   buildInputSupportFields,
   extractUnmanagedCapability,
   mergeManagedCapability,
+  normalizeAllowedScenes,
   parseInputModalities
 } from '../src/views/aid/aimanage/capabilityMerge.ts';
+import { GENERATION_SCENE_OPTIONS } from '../src/views/aid/aimanage/constants.ts';
 
 const original = {
   requiresConfiguredBilling: true,
@@ -75,5 +77,16 @@ for (const field of [
 ]) {
   assert.equal(legacyRoundTrip[field], true, `legacy modality lost during round-trip: ${field}`);
 }
+
+const normalizedScenes = normalizeAllowedScenes([
+  'texttoimage', 'IMAGETOIMAGE', 'multiFrame', 'MultiFrame'
+]);
+assert.deepEqual(normalizedScenes, ['textToImage', 'imageToImage', 'multiFrame'],
+  'allowedScenes did not restore standard camelCase or deduplicate extension scenes');
+assert.deepEqual(GENERATION_SCENE_OPTIONS.image.map(({ value }) => value),
+  ['textToImage', 'imageToImage'], 'image models exposed unrelated generation scenes');
+assert.deepEqual(GENERATION_SCENE_OPTIONS.video.map(({ value }) => value),
+  ['textToVideo', 'imageToVideo', 'startEndToVideo', 'referenceToVideo', 'videoToVideo'],
+  'video models exposed unrelated generation scenes');
 
 console.log('capability round-trip contract passed');

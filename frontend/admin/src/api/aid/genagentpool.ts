@@ -1,15 +1,16 @@
 import { request } from '@/utils/request';
+import { sharedReadRequest } from '@/utils/sharedReadRequest';
 
 // ============ 矩阵可视化配置（推荐） ============
 
 // 矩阵列表（按 步骤×业务场景×创作模式×剧本类型 聚合的格子）
 export function getAgentMatrix(step?: string) {
-  return request({ url: '/aid/genagentpool/matrix', method: 'get', params: { step } });
+  return sharedReadRequest('/aid/genagentpool/matrix', { step }, true);
 }
 
 // 某业务场景下可选的智能体 + 带场景级清晰度/比例能力的模型（联动下拉数据）
 export function getPoolOptions(biz: string) {
-  return request({ url: '/aid/genagentpool/options', method: 'get', params: { biz } });
+  return sharedReadRequest('/aid/genagentpool/options', { biz }, true);
 }
 
 // 覆盖式保存一个格子

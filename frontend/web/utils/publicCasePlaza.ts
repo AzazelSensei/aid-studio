@@ -14,11 +14,20 @@ export interface PublicCaseCardItem {
   categoryLabel: string
   episodeCount: number
   coverUrl: string
+  aspectRatio: string
 }
 
 const CATEGORY_LABEL: Record<UserProjectType, string> = {
   movie: '电影/短片',
   series: '电视剧集'
+}
+
+const PROJECT_ASPECT_RATIOS = new Set(['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'])
+
+/** 案例卡片只使用项目画幅，不根据成片或封面尺寸反推。 */
+export function resolvePublicProjectAspectRatio(value: unknown): string {
+  const normalized = String(value ?? '').trim().replace('/', ':')
+  return PROJECT_ASPECT_RATIOS.has(normalized) ? normalized.replace(':', ' / ') : '16 / 9'
 }
 
 export function resolvePublicProjectType(value: unknown): UserProjectType {
@@ -37,7 +46,8 @@ export function normalizePublicCaseCard(row: PublicProjectVideoRow): PublicCaseC
     category,
     categoryLabel: CATEGORY_LABEL[category],
     episodeCount: Number.isFinite(episodeCount) && episodeCount > 0 ? episodeCount : 0,
-    coverUrl: String(row.coverUrl || '').trim()
+    coverUrl: String(row.coverUrl || '').trim(),
+    aspectRatio: resolvePublicProjectAspectRatio(row.aspectRatio)
   }
 }
 

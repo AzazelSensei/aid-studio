@@ -64,13 +64,13 @@ public class UserComicAssetController extends BaseController {
     }
 
     /**
-     * 合并分页查询「个人 + 官方」资产（官方推荐、个人、官方非推荐）。
+     * 合并分页查询「个人 + 官方」资产（个人、官方推荐、官方非推荐）。
      * 每条带 sourceFlag：custom 个人(可编辑/删除) / official 官方(只读)，便于前端判断操作权限。
      */
     @PostMapping("/page")
     @Anonymous
     @Operation(summary = "合并分页查询个人与官方素材",
-            description = "未登录时仅返回官方素材；登录后按官方推荐、个人素材、官方非推荐顺序返回；支持风格分类筛选")
+            description = "未登录时仅返回官方素材；登录后按个人素材、官方推荐、官方非推荐顺序返回；支持风格分类筛选")
     public AjaxResult page(@RequestBody(required = false) MergedAssetPageRequest request) {
         Long userId = LoginHelper.getUserId();
         Map<String, Object> data = userComicAssetService.pageMergedAssets(request, userId);

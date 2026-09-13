@@ -1376,7 +1376,7 @@ public class StoryboardVideoPromptServiceImpl implements IStoryboardVideoPromptS
                         targetList.size(), OUTPUT_TOKENS_PER_STORYBOARD);
                 MediaTaskResponse llmResp = batchParentSubmissionGuard.executeManagedTask(
                         taskId, executionTraceId,
-                        () -> helper.callLlmRawForResponse(
+                        () -> helper.callLlmStructuredForResponse(
                                 systemPrompt, finalUserContent, modelCode, taskId, userId, null, BIZ_TASK_TYPE,
                                 // 整批是一个原子业务交付槽位。续生会把 storyboardIds 收缩为 remaining，
                                 // 因此 stable slot 禁止携带本轮 count/index；实际目标集合由 messages SHA 区分。

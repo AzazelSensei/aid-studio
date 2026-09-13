@@ -28,6 +28,25 @@ describe('API authentication navigation', () => {
     expect(useLoginModalStore.getState().open).toBe(true)
   })
 
+  it.each([
+    '/api/user/asset/custom/page',
+    '/api/user/asset/style/category/list',
+    '/api/user/skill/execution/catalog',
+    '/url/api/user/skill/execution/catalog?scene=home'
+  ])('guest public catalog request reaches the network: %s', async (url) => {
+    const adapter = vi.fn<AxiosAdapter>(async (config) => ({
+      config,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: { code: 200, data: [] }
+    }))
+
+    await expect(api.post(url, {}, { adapter })).resolves.toMatchObject({ code: 200 })
+    expect(adapter).toHaveBeenCalledTimes(1)
+    expect(useLoginModalStore.getState().open).toBe(false)
+  })
+
   it('home banner requests preserve the protected page saved for after login', async () => {
     requireLogin({ redirect: '/works?tab=recent' })
     await expect(api.post('/api/user/home/banner/list')).rejects.toSatisfy(axios.isCancel)

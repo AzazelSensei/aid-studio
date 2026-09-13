@@ -10,20 +10,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MergedAssetPagePlannerTest {
 
     @Test
-    void shouldCrossRecommendedAndCustomBoundary() {
+    void shouldCrossCustomAndRecommendedBoundary() {
         List<MergedAssetPagePlanner.Slice> slices = MergedAssetPagePlanner.plan(1, 4, 2, 3, 4);
 
         assertEquals(2, slices.size());
-        assertSlice(slices.get(0), MergedAssetPagePlanner.Segment.OFFICIAL_RECOMMENDED, 1, 1);
-        assertSlice(slices.get(1), MergedAssetPagePlanner.Segment.CUSTOM, 0, 3);
+        assertSlice(slices.get(0), MergedAssetPagePlanner.Segment.CUSTOM, 1, 2);
+        assertSlice(slices.get(1), MergedAssetPagePlanner.Segment.OFFICIAL_RECOMMENDED, 0, 2);
     }
 
     @Test
-    void shouldCrossCustomAndOfficialNormalBoundary() {
+    void shouldCrossRecommendedAndOfficialNormalBoundary() {
         List<MergedAssetPagePlanner.Slice> slices = MergedAssetPagePlanner.plan(4, 4, 2, 3, 4);
 
         assertEquals(2, slices.size());
-        assertSlice(slices.get(0), MergedAssetPagePlanner.Segment.CUSTOM, 2, 1);
+        assertSlice(slices.get(0), MergedAssetPagePlanner.Segment.OFFICIAL_RECOMMENDED, 1, 1);
         assertSlice(slices.get(1), MergedAssetPagePlanner.Segment.OFFICIAL_NORMAL, 0, 3);
     }
 

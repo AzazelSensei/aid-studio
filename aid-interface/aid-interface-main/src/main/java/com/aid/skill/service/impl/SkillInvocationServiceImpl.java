@@ -2885,6 +2885,7 @@ public class SkillInvocationServiceImpl implements ISkillInvocationService {
         skill.setExecutorType(version.getExecutorType());
         skill.setModelCode(selectedModelCode);
         skill.setMaxOutputTokens(version.getMaxOutputTokens());
+        skill.setDefinitionJson(version.getDefinitionJson());
         return skill;
     }
 

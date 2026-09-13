@@ -24,6 +24,7 @@ public final class TextFinishReasonSupport {
             case "stop" -> null;
             case "length" -> "生成内容不完整";
             case "content_filter" -> "生成被安全拦截";
+            case "insufficient_system_resource" -> "上游资源暂时不足";
             case "tool_calls", "function_call" -> "生成方式不支持";
             default -> "上游终止异常";
         };

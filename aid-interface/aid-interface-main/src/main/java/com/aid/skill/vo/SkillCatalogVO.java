@@ -6,7 +6,7 @@ import lombok.Data;
 
 import java.util.List;
 
-/** Public identity returned by the authenticated Skill Runtime catalog. */
+/** Public identity returned by the anonymous Skill Runtime catalog. */
 public final class SkillCatalogVO {
     private SkillCatalogVO() { }
 

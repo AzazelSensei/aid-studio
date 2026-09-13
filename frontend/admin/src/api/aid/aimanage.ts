@@ -431,7 +431,8 @@ function changeModelPoolBindings(
   operation: 'bind' | 'unbind',
   modelIds: number[],
   poolIds: number[],
-  capabilitySelections: ModelPoolCapabilitySelection[] = []
+  capabilitySelections: ModelPoolCapabilitySelection[] = [],
+  poolReplacementCodes: Record<number, string> = {}
 ) {
   const normalizedModels = normalizeRequestIds(modelIds);
   const normalizedPools = normalizeRequestIds(poolIds);
@@ -441,11 +442,12 @@ function changeModelPoolBindings(
       capabilityCodes: [...new Set(selection.capabilityCodes)].sort()
     }))
     .sort((a, b) => a.poolId - b.poolId || a.modelId - b.modelId);
-  const key = `${operation}:${normalizedModels.join(',')}:${normalizedPools.join(',')}:${JSON.stringify(normalizedSelections)}`;
+  const replacements = Object.fromEntries(Object.entries(poolReplacementCodes).sort(([a], [b]) => Number(a) - Number(b)));
+  const key = `${operation}:${normalizedModels.join(',')}:${normalizedPools.join(',')}:${JSON.stringify(normalizedSelections)}:${JSON.stringify(replacements)}`;
   return mergePoolBindingRequest(key, () => request<ModelPoolBindingChangeResult>({
     url: `/aid/aidmodel/pool-bindings/${operation}`,
     method: 'post',
-    data: { modelIds: normalizedModels, poolIds: normalizedPools, capabilitySelections: normalizedSelections }
+    data: { modelIds: normalizedModels, poolIds: normalizedPools, capabilitySelections: normalizedSelections, poolReplacementCodes: replacements }
   }));
 }
 
@@ -459,8 +461,8 @@ export function bindModelsToPools(
 }
 
 /** 批量移出模型池；重复关系由服务端幂等忽略。 */
-export function unbindModelsFromPools(modelIds: number[], poolIds: number[]) {
-  return changeModelPoolBindings('unbind', modelIds, poolIds);
+export function unbindModelsFromPools(modelIds: number[], poolIds: number[], poolReplacementCodes: Record<number, string> = {}) {
+  return changeModelPoolBindings('unbind', modelIds, poolIds, [], poolReplacementCodes);
 }
 
 export function getModel(id) {

@@ -37,6 +37,7 @@ import {
   isScreenplayRuntimeSkill,
   mergeRuntimeSkills,
   mergeRuntimeThinkingStep,
+  resolveSkillRuntimeModelCode,
   runtimeExecutionKey,
   runtimeResponseMode,
   runtimeStageText,
@@ -51,6 +52,7 @@ import {
 } from '~/utils/storyScriptAgentReference'
 import { normalizeUserSkillInputRequest } from '~/utils/storyScriptAgentClarification'
 import { resolveFlowShortcutSkillCode } from '~/utils/storyScriptAgentSkillPicker'
+import { bindRuntimeMessages, historyRunMessages, mergeHydratedMessages } from '~/utils/storyScriptAgentMessages'
 
 const RUN_POLL_INTERVAL_MS = 2400
 const MAX_CHAT_PROMPT_CHARS = 100_000
@@ -161,64 +163,6 @@ function checkpointMessages(checkpoint: StoryScriptAgentRuntimeCheckpoint): Stor
   ]
 }
 
-function historyRunMessages(handle: UserSkillRuntimeRunHandle): StoryScriptAgentViewMessage[] {
-  const rawPrompt = String(handle.prompt || '').trim()
-  const parsedPrompt = parseStoryScriptAgentPrompt(rawPrompt)
-  const responseMode = runtimeResponseMode(handle, 'SCREENPLAY')
-  const reviewText = String(handle.reviewReport || '')
-  const terminalContent = handle.status === 'SUCCEEDED'
-    ? String(handle.assistantMessage || handle.outputText || reviewText || '')
-    : handle.status === 'CANCELED'
-      ? String(handle.errorMessage || '生成已停止')
-      : String(handle.errorMessage || 'Skill 运行失败')
-  const status: StoryScriptAgentMessageStatus = handle.status === 'SUCCEEDED'
-    ? 'complete'
-    : handle.status === 'CANCELED' ? 'stopped' : 'error'
-  return [
-    {
-      id: `user-run-${handle.runId}`,
-      role: 'user',
-      content: parsedPrompt.instruction || rawPrompt,
-      runId: handle.runId,
-      status: 'complete',
-      references: parsedPrompt.references
-    },
-    {
-      id: `assistant-run-${handle.runId}`,
-      role: 'assistant',
-      content: terminalContent,
-      runId: handle.runId,
-      status,
-      responseMode,
-      references: parsedPrompt.references,
-      partialOutputTrusted: handle.status === 'SUCCEEDED'
-    }
-  ]
-}
-
-function runtimeMessageIdentity(message: StoryScriptAgentViewMessage): string {
-  return message.runId
-    ? `${message.role}:run:${message.runId}`
-    : `${message.role}:id:${message.id}`
-}
-
-function mergeHydratedMessages(
-  history: StoryScriptAgentViewMessage[],
-  current: StoryScriptAgentViewMessage[]
-): StoryScriptAgentViewMessage[] {
-  const currentByIdentity = new Map(current.map((message) => [runtimeMessageIdentity(message), message]))
-  const historyIdentities = new Set<string>()
-  const merged = history.map((message) => {
-    const identity = runtimeMessageIdentity(message)
-    historyIdentities.add(identity)
-    return currentByIdentity.get(identity) || message
-  })
-  for (const message of current) {
-    if (!historyIdentities.has(runtimeMessageIdentity(message))) merged.push(message)
-  }
-  return merged
-}
-
 export function useStoryScriptAgent({
   projectId,
   episodeId,
@@ -229,6 +173,7 @@ export function useStoryScriptAgent({
   const [open, setOpen] = useState(false)
   const [skills, setSkills] = useState<UserSkillDefinition[]>([])
   const [selectedSkillCode, setSelectedSkillCode] = useState('')
+  const [selectedModelCode, setSelectedModelCode] = useState('')
   const [messages, setMessages] = useState<StoryScriptAgentViewMessage[]>([])
   const [skillsLoading, setSkillsLoading] = useState(false)
   const [skillsError, setSkillsError] = useState('')
@@ -286,10 +231,13 @@ export function useStoryScriptAgent({
         skillCatalogRef.current = availableSkills
         skillCatalogLoadedRef.current = true
         const merged = mergeRuntimeSkills(availableSkills, stateRef.current)
+        const stored = stateRef.current
+        const selectedSkill = merged.find((item) => item.skillCode === stored?.skill.skillCode)
+          ?? merged[0]
         setSkills(merged)
-        setSelectedSkillCode((current) => merged.some((item) => item.skillCode === current)
-          ? current
-          : String(merged[0]?.skillCode || ''))
+        setSelectedSkillCode(String(selectedSkill?.skillCode || ''))
+        setSelectedModelCode(String(stored?.activeRun?.invokeRequest.modelCode || '').trim()
+          || resolveSkillRuntimeModelCode(selectedSkill, stored?.modelCode))
       })
       .catch((error: unknown) => {
         if (skillCatalogGenerationRef.current !== generation) return
@@ -316,6 +264,7 @@ export function useStoryScriptAgent({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSkills([])
       setSelectedSkillCode('')
+      setSelectedModelCode('')
       setSkillsError('')
       setSkillsLoading(false)
       return
@@ -368,6 +317,7 @@ export function useStoryScriptAgent({
       projectId: expectedProjectId,
       episodeId,
       skill,
+      modelCode: resolveSkillRuntimeModelCode(skill),
       autoOpen: false,
       lastRunId,
       activeRun: null,
@@ -547,11 +497,7 @@ export function useStoryScriptAgent({
   }, [flushAssistantReasoningDeltas])
 
   const bindRunId = useCallback((idempotencyKey: string, runId: number) => {
-    setMessages((current) => current.map((message) => (
-      message.id === `user-${idempotencyKey}` || message.id === `assistant-${idempotencyKey}`
-        ? { ...message, runId }
-        : message
-    )))
+    setMessages((current) => bindRuntimeMessages(current, idempotencyKey, runId))
   }, [])
 
   const readRuntimeRunDetailOnce = useCallback((runId: number) => {
@@ -930,6 +876,7 @@ export function useStoryScriptAgent({
     skill: UserSkillDefinition
     checkpoint?: StoryScriptAgentRuntimeCheckpoint | null
     references?: EditorTextSelection[]
+    modelCode?: string
   }) => {
     const { expectedProjectId, skill } = input
     const rawPrompt = input.prompt.trim()
@@ -960,10 +907,12 @@ export function useStoryScriptAgent({
         const idempotencyKey = createUserSkillClientMessageId()
         const parentRunId = Number(stateRef.current?.lastRunId)
         const style = String(projectStyleRef.current || '').trim().slice(0, 2000)
+        const modelCode = resolveSkillRuntimeModelCode(skill, input.modelCode)
         checkpoint = {
           idempotencyKey,
           invokeRequest: {
             skillCode: skill.skillCode,
+            modelCode: modelCode || undefined,
             idempotencyKey,
             projectId: expectedProjectId,
             episodeId: episodeId ?? 0,
@@ -989,12 +938,21 @@ export function useStoryScriptAgent({
         }
         const current = stateRef.current
         const next: StoryScriptAgentProjectState = current
-          ? { ...current, skill, pendingPrompt: undefined, activeRun: checkpoint, paused: false, updatedAt: Date.now() }
+          ? {
+              ...current,
+              skill,
+              modelCode: modelCode || undefined,
+              pendingPrompt: undefined,
+              activeRun: checkpoint,
+              paused: false,
+              updatedAt: Date.now()
+            }
           : {
               version: 3,
               projectId: expectedProjectId,
               episodeId: episodeId ?? 0,
               skill,
+              modelCode: modelCode || undefined,
               autoOpen: false,
               activeRun: checkpoint,
               paused: false,
@@ -1119,9 +1077,9 @@ export function useStoryScriptAgent({
       setCanRetry(false)
       setOpen(false)
       setSkills(skillCatalogRef.current)
-      setSelectedSkillCode((current) => skillCatalogRef.current.some(
-        (item) => item.skillCode === current
-      ) ? current : String(skillCatalogRef.current[0]?.skillCode || ''))
+      const firstSkill = skillCatalogRef.current[0]
+      setSelectedSkillCode(String(firstSkill?.skillCode || ''))
+      setSelectedModelCode(resolveSkillRuntimeModelCode(firstSkill))
       return undefined
     }
 
@@ -1145,9 +1103,11 @@ export function useStoryScriptAgent({
     setOpen(Boolean(stored?.autoOpen || stored?.activeRun || stored?.pendingPrompt))
     const availableSkills = mergeRuntimeSkills(skillCatalogRef.current, stored)
     setSkills(availableSkills)
-    setSelectedSkillCode(availableSkills.some((item) => item.skillCode === stored?.skill.skillCode)
-      ? String(stored?.skill.skillCode || '')
-      : String(availableSkills[0]?.skillCode || ''))
+    const selectedSkill = availableSkills.find((item) => item.skillCode === stored?.skill.skillCode)
+      ?? availableSkills[0]
+    setSelectedSkillCode(String(selectedSkill?.skillCode || ''))
+    setSelectedModelCode(String(stored?.activeRun?.invokeRequest.modelCode || '').trim()
+      || resolveSkillRuntimeModelCode(selectedSkill, stored?.modelCode))
     if (stored?.activeRun) setMessages(checkpointMessages(stored.activeRun))
     if (stored?.paused && stored.activeRun) setStatusText('已暂停接收，可恢复接收')
     if (stored?.autoOpen) {
@@ -1273,13 +1233,16 @@ export function useStoryScriptAgent({
     const skill = skillCatalogRef.current.find((item) => item.skillCode === skillCode)
       ?? skills.find((item) => item.skillCode === skillCode)
     if (!skill) return
+    const modelCode = resolveSkillRuntimeModelCode(skill)
     setSelectedSkillCode(skillCode)
+    setSelectedModelCode(modelCode)
     setMessages([])
     const next: StoryScriptAgentProjectState = {
       version: 3,
       projectId,
       episodeId: episodeId ?? 0,
       skill,
+      modelCode: modelCode || undefined,
       autoOpen: false,
       activeRun: null,
       pendingInputResponse: null,
@@ -1292,6 +1255,37 @@ export function useStoryScriptAgent({
     setCanStop(false)
     setStatusText('已切换 Skill，将开始新的运行')
   }, [episodeId, projectId, selectedSkillCode, skills])
+
+  const selectModel = useCallback((modelCode: string) => {
+    if (sendingRef.current || !projectId || modelCode === selectedModelCode) return
+    if (stateRef.current?.activeRun) {
+      setLastError('请先完成或停止当前 Skill 运行')
+      return
+    }
+    const skill = skills.find((item) => item.skillCode === selectedSkillCode)
+    const resolvedModelCode = resolveSkillRuntimeModelCode(skill, modelCode)
+    if (!skill || !resolvedModelCode || resolvedModelCode !== modelCode) return
+    setSelectedModelCode(resolvedModelCode)
+    const current = stateRef.current
+    const next: StoryScriptAgentProjectState = current
+      ? { ...current, skill, modelCode: resolvedModelCode, updatedAt: Date.now() }
+      : {
+          version: 3,
+          projectId,
+          episodeId: episodeId ?? 0,
+          skill,
+          modelCode: resolvedModelCode,
+          autoOpen: false,
+          activeRun: null,
+          pendingInputResponse: null,
+          paused: false,
+          updatedAt: Date.now()
+        }
+    writeStoryScriptAgentState(next)
+    stateRef.current = next
+    setLastError('')
+    setStatusText(`已切换模型：${skill.models?.find((model) => model.modelCode === modelCode)?.modelName || modelCode}`)
+  }, [episodeId, projectId, selectedModelCode, selectedSkillCode, skills])
 
   const selectMatchingSkill = useCallback(async (hint: string) => {
     await loadSkills()
@@ -1309,6 +1303,11 @@ export function useStoryScriptAgent({
     const skill = skills.find((item) => item.skillCode === selectedSkillCode)
     if (!skill) {
       setLastError('请先选择 Skill')
+      return false
+    }
+    const modelCode = resolveSkillRuntimeModelCode(skill, selectedModelCode)
+    if (!modelCode) {
+      setLastError('当前 Skill 暂无可用模型')
       return false
     }
     const normalizedReferences = normalizeStoryScriptAgentReferences(references)
@@ -1338,6 +1337,7 @@ export function useStoryScriptAgent({
       ? {
           ...current,
           skill,
+          modelCode,
           pendingPrompt: requestPrompt,
           activeRun: null,
           pendingInputResponse: null,
@@ -1349,6 +1349,7 @@ export function useStoryScriptAgent({
           projectId,
           episodeId,
           skill,
+          modelCode,
           autoOpen: false,
           pendingPrompt: requestPrompt,
           activeRun: null,
@@ -1363,10 +1364,11 @@ export function useStoryScriptAgent({
       expectedProjectId: projectId,
       prompt: requestPrompt,
       skill,
+      modelCode,
       references: normalizedReferences
     })
     return true
-  }, [episodeId, executeRuntimeRun, projectId, selectedSkillCode, skills])
+  }, [episodeId, executeRuntimeRun, projectId, selectedModelCode, selectedSkillCode, skills])
 
   const submitInputRequest = useCallback(async (
     inputRequest: UserSkillInputRequest,
@@ -1487,6 +1489,7 @@ export function useStoryScriptAgent({
       expectedProjectId: projectId,
       prompt,
       skill,
+      modelCode: state?.modelCode,
       checkpoint: retryCheckpoint
     })
   }, [executeRuntimeRun, markPartialOutputUntrusted, projectId])
@@ -1657,6 +1660,8 @@ export function useStoryScriptAgent({
     skills,
     selectedSkillCode,
     selectSkill,
+    selectedModelCode,
+    selectModel,
     selectMatchingSkill,
     skillsLoading,
     skillsError,

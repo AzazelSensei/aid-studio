@@ -1,6 +1,7 @@
 package com.aid.skill.controller;
 
 import com.aid.common.aid.crypto.annotation.CryptoIgnore;
+import com.aid.common.annotation.Anonymous;
 import com.aid.common.core.domain.AjaxResult;
 import com.aid.common.utils.SecurityUtils;
 import com.aid.skill.dto.SkillInvocationRequests;
@@ -57,6 +58,7 @@ public class SkillRuntimeController {
     private final SkillRuntimeEventHub eventHub;
 
     @PostMapping("/catalog")
+    @Anonymous
     @Operation(summary = "List callable Skill Runtime entrypoints")
     public AjaxResult catalog() {
         return AjaxResult.success(catalogService.listEntrypoints());

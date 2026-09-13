@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.aid.common.annotation.Anonymous;
 import com.aid.aid.domain.AidComicAsset;
 import com.aid.asset.dto.OfficialAssetQueryRequest;
 import com.aid.asset.service.IUserAssetBusinessService;
@@ -66,6 +67,7 @@ public class UserAssetController extends BaseController
      * 查询风格分类选项。
      */
     @PostMapping("/style/category/list")
+    @Anonymous
     @Operation(summary = "查询风格分类", description = "返回稳定code与中文label，首项all为虚拟全部分类")
     public AjaxResult styleCategoryList()
     {

@@ -24,6 +24,21 @@ export function isScreenplayRuntimeSkill(skill: UserSkillDefinition): boolean {
   return skill.capability === 'SCRIPT_WRITING' && skill.outputKind === 'SCREENPLAY'
 }
 
+export function resolveSkillRuntimeModelCode(
+  skill: UserSkillDefinition | null | undefined,
+  preferredModelCode?: string | null
+): string {
+  const models = (skill?.models ?? []).filter((model) => String(model.modelCode || '').trim())
+  const preferred = String(preferredModelCode || '').trim()
+  if (preferred && models.some((model) => model.modelCode === preferred)) return preferred
+
+  const declaredDefault = String(skill?.defaultModelCode || '').trim()
+  if (declaredDefault && models.some((model) => model.modelCode === declaredDefault)) {
+    return declaredDefault
+  }
+  return String(models.find((model) => model.defaultModel)?.modelCode || models[0]?.modelCode || '')
+}
+
 export function mergeRuntimeSkills(
   availableSkills: UserSkillDefinition[],
   stored: StoryScriptAgentProjectState | null

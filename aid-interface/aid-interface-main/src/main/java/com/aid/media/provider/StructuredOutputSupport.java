@@ -15,14 +15,14 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 文本模型结构化输出（JSON Mode）统一注入工具。
  * <p>
- * 模型在 {@code capability_json} 声明 {@code "supportsJsonObject": true} 且本次请求的
- * system / user 消息中包含 "JSON" 关键词（官方硬性前置条件，不区分大小写）时，自动注入
+ * 业务显式开启、模型在 {@code capability_json} 声明 {@code "supportsJsonObject": true}，且本次请求的
+ * system / user 消息中包含 "JSON" 关键词（官方硬性前置条件，不区分大小写）时，注入
  * {@code response_format={"type":"json_object"}}，让上游直接返回可解析的标准 JSON，
  * 避免 ```json 包裹等多余文本导致下游解析失败。
  * <p>
  * 规则：
  * <ol>
- *   <li>业务显式传入 response_format 时尊重业务配置，不覆盖；</li>
+ *   <li>业务显式关闭时移除模型级 response_format；未配置开关且请求已显式传入时尊重原配置；</li>
  *   <li>capability 未打标的模型完全不受影响（方舟 Seed 2.x Pro 等官方无此能力的模型不得打标）；</li>
  *   <li>消息不含 "JSON" 关键词时不注入——官方会直接报错
  *       {@code 'messages' must contain the word 'json' in some form}；</li>
@@ -57,21 +57,26 @@ public final class StructuredOutputSupport {
      *
      * @param modelConfig   模型聚合配置（读 capability_json.supportsJsonObject）
      * @param messages      已组装的 OpenAI 兼容 messages（检测 system/user 是否含 JSON 关键词）
-     * @param mergedOptions extra_body 与业务 options 合并后的请求参数（可为 null）
+     * @param mergedOptions extra_body 与业务 options 合并后的请求参数；业务须通过
+     *                      {@link #ENABLED_KEY} 显式开启；显式关闭会移除配置层遗留的 response_format
      * @return 注入后的参数 Map；无需注入时原样返回入参
      */
     public static Map<String, Object> applyJsonModeIfSupported(AiModelConfigVo modelConfig,
                                                                List<Map<String, Object>> messages,
                                                                Map<String, Object> mergedOptions) {
-        if (mergedOptions != null && mergedOptions.containsKey(ENABLED_KEY)) {
-            boolean enabled = Boolean.parseBoolean(String.valueOf(mergedOptions.remove(ENABLED_KEY)));
-            if (!enabled) {
-                return mergedOptions.isEmpty() ? null : mergedOptions;
-            }
+        boolean configured = mergedOptions != null && mergedOptions.containsKey(ENABLED_KEY);
+        boolean enabled = configured
+                && Boolean.parseBoolean(String.valueOf(mergedOptions.remove(ENABLED_KEY)));
+        if (configured && !enabled && mergedOptions != null) {
+            // Skill/对话显式关闭时，必须压过供应商或模型 extra_body 中遗留的 JSON Mode。
+            mergedOptions.remove(KEY_RESPONSE_FORMAT);
         }
         // 业务显式配置 response_format：尊重业务，不覆盖
         if (mergedOptions != null && mergedOptions.containsKey(KEY_RESPONSE_FORMAT)) {
             return mergedOptions;
+        }
+        if (!enabled) {
+            return mergedOptions == null || mergedOptions.isEmpty() ? null : mergedOptions;
         }
         if (!supportsJsonObject(modelConfig)) {
             return mergedOptions;

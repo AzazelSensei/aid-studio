@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * 合并资产分页查询请求 DTO（个人 + 官方）。
  * 个人资产取自 aid_user_comic_asset（按 userId 隔离），官方资产取自 aid_comic_asset；
- * 排序固定为「官方推荐、个人、官方非推荐」，跨两表统一分页。两表均无项目/剧集字段，
+ * 登录后排序固定为「个人、官方推荐、官方非推荐」，匿名时仅返回官方素材，跨两表统一分页。两表均无项目/剧集字段，
  * 支持按 assetType、keyword 与官方风格 categoryCode 过滤；具体分类会排除无官方分类的个人素材。
  *
  * @author 视觉AID

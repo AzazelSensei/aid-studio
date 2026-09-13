@@ -40,7 +40,7 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
     public void streamChat(AiModelConfigVo modelConfig, MediaTextGenerateRequest request,
                            TextStreamCallbacks callbacks) throws IOException {
         TextOutputLimitResolver.normalize(request, modelConfig);
-        String url = resolveUrlOrFail(modelConfig, callbacks, true);
+        String url = resolveUrlOrFail(modelConfig, request, callbacks, true);
         if (url == null) {
             return;
         }
@@ -58,7 +58,7 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
                 modelConfig.getExtraBodyJson(), modelConfig.getModelExtraBodyJson(), request.getOptions());
         mergedOptions = TextReasoningOptionsResolver.resolveOpenAiCompatible(modelConfig, request, mergedOptions);
         mergedOptions = normalizeProviderOptions(modelConfig, request, mergedOptions);
-        // 结构化输出：模型声明支持且消息含 JSON 关键词时注入 response_format=json_object，避免格式错误
+        // 结构化输出必须由业务显式开启，不能仅因对话中出现 JSON 字样而改变回复协议。
         mergedOptions = com.aid.media.provider.StructuredOutputSupport
                 .applyJsonModeIfSupported(modelConfig, messages, mergedOptions);
         String body = com.aid.model.definition.ModelConfiguredRequestBody.applyJson(modelConfig, buildBody(model, messages, true, mergedOptions, request), request);
@@ -77,7 +77,7 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
         TextOutputLimitResolver.normalize(request, modelConfig);
         String url = OpenAiCompatiblePayloadResolver.buildApiUrl(
                 modelConfig != null ? modelConfig.getBaseUrl() : null,
-                modelConfig != null ? modelConfig.getApiSuffix() : null,
+                resolveApiSuffix(modelConfig, request),
                 modelConfig != null ? modelConfig.getExtraQueryJson() : null);
         if (url == null) {
             log.error("OpenAI 兼容非流式: base_url 或 api_suffix 缺失, providerCode={}, modelCode={}",
@@ -99,7 +99,7 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
                 modelConfig.getExtraBodyJson(), modelConfig.getModelExtraBodyJson(), request.getOptions());
         mergedOptions = TextReasoningOptionsResolver.resolveOpenAiCompatible(modelConfig, request, mergedOptions);
         mergedOptions = normalizeProviderOptions(modelConfig, request, mergedOptions);
-        // 结构化输出：模型声明支持且消息含 JSON 关键词时注入 response_format=json_object，避免格式错误
+        // 结构化输出必须由业务显式开启，不能仅因对话中出现 JSON 字样而改变回复协议。
         mergedOptions = com.aid.media.provider.StructuredOutputSupport
                 .applyJsonModeIfSupported(modelConfig, messages, mergedOptions);
         String body = com.aid.model.definition.ModelConfiguredRequestBody.applyJson(modelConfig, buildBody(model, messages, false, mergedOptions, request), request);
@@ -130,6 +130,11 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
         return options;
     }
 
+    /** 允许特定协议按请求语义选择正式或实验端点。 */
+    protected String resolveApiSuffix(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
+        return modelConfig == null ? null : modelConfig.getApiSuffix();
+    }
+
     @Override
     public ProviderTaskResult query(AiModelConfigVo modelConfig, String providerTaskId) {
         // 文本模型同步返回，无官方异步任务状态。
@@ -158,9 +163,10 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
      * 流式入口的 URL 解析：缺配置时通过 callbacks 上报错误而不是抛异常，
      * 避免上层 SSE sink 收到未归一化的栈消息。
      */
-    private String resolveUrlOrFail(AiModelConfigVo modelConfig, TextStreamCallbacks callbacks, boolean isStream) {
+    private String resolveUrlOrFail(AiModelConfigVo modelConfig, MediaTextGenerateRequest request,
+                                    TextStreamCallbacks callbacks, boolean isStream) {
         String baseUrl = modelConfig != null ? modelConfig.getBaseUrl() : null;
-        String apiSuffix = modelConfig != null ? modelConfig.getApiSuffix() : null;
+        String apiSuffix = resolveApiSuffix(modelConfig, request);
         if (StringUtils.isBlank(baseUrl)) {
             log.error("OpenAI 兼容{}: base_url 为空, providerCode={}",
                     isStream ? "流式" : "非流式", modelConfig == null ? null : modelConfig.getProviderCode());

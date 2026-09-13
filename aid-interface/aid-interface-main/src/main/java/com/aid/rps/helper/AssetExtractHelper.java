@@ -498,12 +498,13 @@ public class AssetExtractHelper
     /**
      * 构造统一的 LLM options 参数（max_tokens 等），并显式关闭思考模式把预算全留给 JSON 正文。
      */
-    private Map<String, Object> buildLlmOptions()
+    private Map<String, Object> buildLlmOptions(boolean structuredOutput)
     {
-        return buildLlmOptions(null, null);
+        return buildLlmOptions(null, null, structuredOutput);
     }
 
-    private Map<String, Object> buildLlmOptions(String callIdentity, Integer requestedOutputTokens)
+    private Map<String, Object> buildLlmOptions(String callIdentity, Integer requestedOutputTokens,
+                                                boolean structuredOutput)
     {
         Map<String, Object> options = new java.util.HashMap<>();
         int outputTokens = resolveOutputTokenCap(callIdentity, requestedOutputTokens);
@@ -514,6 +515,8 @@ public class AssetExtractHelper
         }
         // 资产提取专用：显式禁用思考模式，把全部输出预算留给 JSON 正文
         options.put(TextReasoningOptionsResolver.ENABLED_KEY, Boolean.FALSE);
+        // 只有调用方明确按 JSON 解析结果时才开启；自然语言正文与视觉描述保持关闭。
+        options.put(com.aid.media.provider.StructuredOutputSupport.ENABLED_KEY, structuredOutput);
         return options;
     }
 
@@ -625,7 +628,7 @@ public class AssetExtractHelper
         textRequest.setStream(Boolean.FALSE);
         textRequest.setReasoningEnabled(Boolean.FALSE);
         textRequest.setIncludeReasoning(Boolean.FALSE);
-        textRequest.setOptions(buildLlmOptions());
+        textRequest.setOptions(buildLlmOptions(true));
         textRequest.setTaskPromptDigest(taskPromptDigest);
         textRequest.setMessages(buildMessages(systemPrompt, null, modelCode));
         applyTextCallBilling(textRequest, bizTaskId, BIZ_TASK_TYPE_EXTRACT, modelCode, null, null);
@@ -665,7 +668,7 @@ public class AssetExtractHelper
         textRequest.setStream(Boolean.FALSE);
         textRequest.setReasoningEnabled(Boolean.FALSE);
         textRequest.setIncludeReasoning(Boolean.FALSE);
-        textRequest.setOptions(buildLlmOptions());
+        textRequest.setOptions(buildLlmOptions(true));
         textRequest.setTaskPromptDigest(taskPromptDigest);
         textRequest.setMessages(buildMessages(systemPrompt, userContent, modelCode));
         applyTextCallBilling(textRequest, bizTaskId, BIZ_TASK_TYPE_EXTRACT, modelCode, null, null);
@@ -765,6 +768,19 @@ public class AssetExtractHelper
         return finalResponse == null ? null : finalResponse.getTextContent();
     }
 
+    /** 明确按 JSON 契约交付原始字符串，供调用方执行自身的结构与业务校验。 */
+    public String callLlmStructured(String systemPrompt, String userContent, String modelCode,
+                              Long bizTaskId, Long userId, String taskPromptDigest,
+                              String bizTaskType, String callIdentity,
+                              java.util.function.Predicate<String> replayValidator,
+                              String expectedTraceId, Integer requestedOutputTokens, String businessFuncCode)
+    {
+        MediaTaskResponse finalResponse = callLlmForResponse(systemPrompt, userContent, modelCode,
+                bizTaskId, userId, taskPromptDigest, bizTaskType, callIdentity, replayValidator,
+                expectedTraceId, requestedOutputTokens, businessFuncCode, true);
+        return finalResponse == null ? null : finalResponse.getTextContent();
+    }
+
     /**
      * 调用 LLM 返回最终媒体任务响应（含 textContent 与平台 taskId），供结算按真实 token 回读时使用。
      *
@@ -819,6 +835,30 @@ public class AssetExtractHelper
                               java.util.function.Predicate<String> replayValidator,
                               String expectedTraceId, Integer requestedOutputTokens, String businessFuncCode)
     {
+        return callLlmForResponse(systemPrompt, userContent, modelCode, bizTaskId, userId,
+                taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId,
+                requestedOutputTokens, businessFuncCode, false);
+    }
+
+    /** 明确按 JSON 契约交付，同时保留最终媒体任务信息供真实用量结算。 */
+    public MediaTaskResponse callLlmStructuredForResponse(String systemPrompt, String userContent,
+                              String modelCode, Long bizTaskId, Long userId, String taskPromptDigest,
+                              String bizTaskType, String callIdentity,
+                              java.util.function.Predicate<String> replayValidator,
+                              String expectedTraceId, Integer requestedOutputTokens, String businessFuncCode)
+    {
+        return callLlmForResponse(systemPrompt, userContent, modelCode, bizTaskId, userId,
+                taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId,
+                requestedOutputTokens, businessFuncCode, true);
+    }
+
+    private MediaTaskResponse callLlmForResponse(String systemPrompt, String userContent, String modelCode,
+                              Long bizTaskId, Long userId, String taskPromptDigest,
+                              String bizTaskType, String callIdentity,
+                              java.util.function.Predicate<String> replayValidator,
+                              String expectedTraceId, Integer requestedOutputTokens,
+                              String businessFuncCode, boolean structuredOutput)
+    {
         MediaTextGenerateRequest textRequest = new MediaTextGenerateRequest();
         textRequest.setModelName(modelCode);
         textRequest.setBizTaskId(bizTaskId);
@@ -828,7 +868,7 @@ public class AssetExtractHelper
         textRequest.setStream(Boolean.FALSE);
         textRequest.setReasoningEnabled(Boolean.FALSE);
         textRequest.setIncludeReasoning(Boolean.FALSE);
-        textRequest.setOptions(buildLlmOptions(callIdentity, requestedOutputTokens));
+        textRequest.setOptions(buildLlmOptions(callIdentity, requestedOutputTokens, structuredOutput));
         textRequest.setTaskPromptDigest(taskPromptDigest);
         textRequest.setMessages(buildMessages(systemPrompt, userContent, modelCode));
         applyBusinessModelContext(textRequest, businessFuncCode);
@@ -910,7 +950,7 @@ public class AssetExtractHelper
         String textContent = callLlmRawWithInputsInternal(promptTemplate, userInputs, modelCode,
                 bizTaskId, userId, taskPromptDigest, BIZ_TASK_TYPE_EXTRACT, callIdentity,
                 raw -> isReplayJsonValid(raw, replayValidator), expectedTraceId,
-                requestedOutputTokens, businessFuncCode);
+                requestedOutputTokens, businessFuncCode, true);
         if (StrUtil.isBlank(textContent))
         {
             log.error("LLM返回内容为空");
@@ -1220,7 +1260,8 @@ public class AssetExtractHelper
             String expectedTraceId, String businessFuncCode)
     {
         return callLlmRawWithInputsInternal(promptTemplate, userInputs, modelCode, bizTaskId, userId,
-                taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId, null, businessFuncCode);
+                taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId,
+                null, businessFuncCode, true);
     }
 
     private String callLlmRawWithInputsInternal(String promptTemplate, Map<String, String> userInputs,
@@ -1231,7 +1272,9 @@ public class AssetExtractHelper
                                                  String expectedTraceId,
                                                  Integer requestedOutputTokens)
     {
-        return callLlmRawWithInputsInternal(promptTemplate, userInputs, modelCode, bizTaskId, userId, taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId, requestedOutputTokens, null);
+        return callLlmRawWithInputsInternal(promptTemplate, userInputs, modelCode, bizTaskId, userId,
+                taskPromptDigest, bizTaskType, callIdentity, replayValidator, expectedTraceId,
+                requestedOutputTokens, null, true);
     }
 
     private String callLlmRawWithInputsInternal(String promptTemplate, Map<String, String> userInputs,
@@ -1240,7 +1283,8 @@ public class AssetExtractHelper
                                                  String callIdentity,
                                                  java.util.function.Predicate<String> replayValidator,
                                                  String expectedTraceId,
-                                                 Integer requestedOutputTokens, String businessFuncCode)
+                                                 Integer requestedOutputTokens, String businessFuncCode,
+                                                 boolean structuredOutput)
     {
         String systemPrompt = stripPlaceholders(promptTemplate, userInputs);
         String userContent = buildStructuredUserContent(userInputs);
@@ -1254,7 +1298,7 @@ public class AssetExtractHelper
         textRequest.setStream(Boolean.FALSE);
         textRequest.setReasoningEnabled(Boolean.FALSE);
         textRequest.setIncludeReasoning(Boolean.FALSE);
-        textRequest.setOptions(buildLlmOptions(callIdentity, requestedOutputTokens));
+        textRequest.setOptions(buildLlmOptions(callIdentity, requestedOutputTokens, structuredOutput));
         textRequest.setTaskPromptDigest(taskPromptDigest);
         textRequest.setMessages(buildMessages(systemPrompt, userContent, modelCode));
         applyBusinessModelContext(textRequest, businessFuncCode);

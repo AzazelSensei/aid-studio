@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, message } from 'antd';
+import { confirmModelPoolRemoval } from '../funcconfig/confirmModelPoolRemoval';
 import {
   listProvider, getProvider, addProvider, updateProvider, updateProviderStatus, delProvider,
   listModel, getModel, addModel, updateModel, getModelPoolBindings, bindModelsToPools, unbindModelsFromPools,
@@ -245,9 +246,11 @@ export default function AimanagePage() {
       try {
         const pendingLoad = providerLoadRef.current;
         if (pendingLoad) await pendingLoad;
+        const replacements = operation === 'unbind' ? await confirmModelPoolRemoval(selectedModelIds, poolIds) : {};
+        if (!replacements) return;
         const response: any = operation === 'bind'
           ? await bindModelsToPools(selectedModelIds, poolIds, capabilitySelections)
-          : await unbindModelsFromPools(selectedModelIds, poolIds);
+          : await unbindModelsFromPools(selectedModelIds, poolIds, replacements);
         const result = response.data;
         if (result?.snapshot) setPoolSnapshot(result.snapshot);
         message.success(result?.changedRelationCount > 0

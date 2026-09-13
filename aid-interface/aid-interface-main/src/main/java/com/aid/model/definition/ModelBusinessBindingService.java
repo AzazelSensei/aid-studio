@@ -54,7 +54,7 @@ public class ModelBusinessBindingService {
             if (current == null) fail("业务功能不存在");
             if (!Objects.equals(current.getFuncCode(), function.getFuncCode())) fail("业务功能编码不可修改");
         }
-        orchestration.validateFunctionConfig(function);
+        orchestration.prepareFunctionUpdate(function, actor);
         reconciler.reconcile(function, actor);
         function.setUpdateBy(actor);
         return creating ? functions.insertAidAiModelFuncConfig(function) : functions.updateAidAiModelFuncConfig(function);
@@ -147,7 +147,7 @@ public class ModelBusinessBindingService {
             if (!selected) ids.remove(modelId);
             if ("0".equals(function.getStatus()) && ids.isEmpty()) fail("业务至少绑定一模型");
             function.setModelIds(JSON.toJSONString(ids));
-            orchestration.validateFunctionConfig(function);
+            orchestration.prepareFunctionUpdate(function, actor);
             function.setUpdateBy(actor);
             function.setUpdateTime(DateUtils.getNowDate());
             functions.updateById(function);

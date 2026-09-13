@@ -941,7 +941,7 @@ public class StoryboardImagePromptServiceImpl implements IStoryboardImagePromptS
                 totalInputChars += inputChars;
 
                 String llmRaw = batchParentSubmissionGuard.executeManagedTask(taskId, executionTraceId,
-                        () -> helper.callLlmRaw(systemPrompt, userContent, modelCode,
+                        () -> helper.callLlmStructured(systemPrompt, userContent, modelCode,
                                 taskId, userId, /*taskPromptDigest*/ null, BIZ_TASK_TYPE,
                                 // storyboardId 是跨续生不变的业务序位；remaining 列表会收缩，禁止把本轮循环下标写入 stable slot。
                                 "stage=image_prompt,item=" + sb.getId(),

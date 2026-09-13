@@ -43,7 +43,7 @@ export function resolveStoryScriptAgentDocumentView(
         : '正在实时输出创作思路'
       : isStopped
         ? '本次生成已停止'
-        : '可展开预览并带入当前剧本',
+        : isError ? '本次生成未完成，请查看错误信息后重试' : '可展开预览并带入当前剧本',
     bodyText: hasRenderableContent ? content : isError ? '暂无内容' : '',
     bodyIsPlaceholder,
     showBody,

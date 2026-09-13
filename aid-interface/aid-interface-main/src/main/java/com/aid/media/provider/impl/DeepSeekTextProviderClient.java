@@ -4,6 +4,7 @@ import com.aid.common.exception.ServiceException;
 import com.aid.domain.vo.AiModelConfigVo;
 import com.aid.media.dto.MediaTextGenerateRequest;
 import com.aid.media.provider.TextReasoningOptionsResolver;
+import com.aid.media.provider.StructuredOutputSupport;
 import com.aid.tokendance.provider.text.TokenDanceToolMessages;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -70,11 +71,6 @@ public class DeepSeekTextProviderClient extends GenericOpenAiCompatibleTextProvi
             String role = message.getRole() == null ? "user" : message.getRole().trim().toLowerCase(java.util.Locale.ROOT);
             if (!Set.of("system", "user", "assistant", "tool").contains(role)) throw reject("消息角色不支持");
             message.setRole(role);
-            if (Boolean.TRUE.equals(message.getPrefix())
-                    && (modelConfig.getApiSuffix() == null || !modelConfig.getApiSuffix().contains("/beta/"))
-                    && (modelConfig.getBaseUrl() == null || !modelConfig.getBaseUrl().endsWith("/beta"))) {
-                throw reject("前缀需要补全协议");
-            }
             if (tools && !Boolean.FALSE.equals(request.getReasoningEnabled())
                     && "assistant".equals(message.getRole()) && message.getReasoningContent() == null) {
                 throw reject("工具思考上下文缺失");
@@ -93,7 +89,8 @@ public class DeepSeekTextProviderClient extends GenericOpenAiCompatibleTextProvi
             MediaTextGenerateRequest request, Map<String, Object> source) {
         validateRequest(modelConfig, request);
         Map<String, Object> options = source == null ? new LinkedHashMap<>() : new LinkedHashMap<>(source);
-        options.keySet().removeIf(key -> DeepSeekRequestOptions.internal(key));
+        options.keySet().removeIf(key -> DeepSeekRequestOptions.internal(key)
+                && !StructuredOutputSupport.ENABLED_KEY.equals(key));
         if (options.containsKey("max_completion_tokens"))
             options.put("max_tokens", options.remove("max_completion_tokens"));
         options.remove("frequency_penalty");
@@ -110,6 +107,19 @@ public class DeepSeekTextProviderClient extends GenericOpenAiCompatibleTextProvi
             }
         }
         return options;
+    }
+
+    @Override
+    protected String resolveApiSuffix(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
+        boolean prefixCompletion = request != null && request.getMessages() != null
+                && request.getMessages().stream().anyMatch(message -> message != null
+                && Boolean.TRUE.equals(message.getPrefix()));
+        if (prefixCompletion) {
+            return "/beta/chat/completions";
+        }
+        String configured = super.resolveApiSuffix(modelConfig, request);
+        return configured != null && configured.replace('\\', '/').endsWith("/beta/chat/completions")
+                ? "/chat/completions" : configured;
     }
 
     @Override

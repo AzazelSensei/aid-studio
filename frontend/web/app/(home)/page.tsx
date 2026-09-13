@@ -167,7 +167,7 @@ export default function HomeNewIndexPage() {
                     openCaseDetail(work.id)
                   }}
                 >
-                  <div className="work-cover">
+                  <div className="work-cover" style={{ aspectRatio: work.aspectRatio }}>
                     <img
                       src={work.coverUrl || emptyImageIconUrl}
                       alt={work.title}

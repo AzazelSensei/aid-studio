@@ -409,11 +409,17 @@ public class GeminiTextProviderClient implements TextProviderClient {
         Map<String, Object> generationConfig = buildGenerationConfig(modelConfig, request);
         // 结构化输出（JSON Mode）：模型打标且请求文本含 JSON 关键词时注入 responseMimeType，
         // 让上游直接返回标准 JSON，避免 ```json 包裹导致下游解析失败
-        boolean structuredOutputEnabled = request == null || request.getOptions() == null
-                || !request.getOptions().containsKey(
-                        com.aid.media.provider.StructuredOutputSupport.ENABLED_KEY)
-                || Boolean.parseBoolean(String.valueOf(request.getOptions().get(
+        boolean structuredOutputEnabled = request != null && request.getOptions() != null
+                && Boolean.parseBoolean(String.valueOf(request.getOptions().get(
                         com.aid.media.provider.StructuredOutputSupport.ENABLED_KEY)));
+        boolean structuredOutputConfigured = request != null && request.getOptions() != null
+                && request.getOptions().containsKey(
+                        com.aid.media.provider.StructuredOutputSupport.ENABLED_KEY);
+        if (structuredOutputConfigured && !structuredOutputEnabled) {
+            generationConfig.remove("responseMimeType");
+            generationConfig.remove("responseSchema");
+            generationConfig.remove("responseJsonSchema");
+        }
         if (structuredOutputEnabled) {
             com.aid.media.provider.StructuredOutputSupport.applyGeminiJsonModeIfSupported(
                     modelConfig, requestTextContainsJsonKeyword(request, systemBuf), generationConfig);

@@ -72,11 +72,26 @@ function resolveApiBaseURL(): string {
 }
 
 const resolvedApiBaseURL = resolveApiBaseURL()
+
+const ANONYMOUS_USER_API_PATHS = new Set([
+  '/api/user/asset/custom/page',
+  '/api/user/asset/style/category/list',
+  '/api/user/skill/execution/catalog'
+])
+
+function normalizeApiPath(url?: string): string {
+  const raw = String(url || '').trim()
+  if (!raw) return ''
+  const withoutOrigin = raw.replace(/^https?:\/\/[^/]+/i, '')
+  const path = withoutOrigin.split(/[?#]/, 1)[0] || ''
+  return path.replace(/^\/(?:url|aid)(?=\/)/, '')
+}
+
 function isLoginRequiredApi(url?: string): boolean {
-  const u = String(url || '')
-  if (!u) return false
-  // 仅 /api/user/** 视为必须登录接口（兼容带 /url 前缀的请求地址）
-  return /(^|\/)(api\/user\/)/.test(u)
+  const path = normalizeApiPath(url)
+  if (!path || ANONYMOUS_USER_API_PATHS.has(path)) return false
+  // 其余 /api/user/** 仍然必须登录；匿名白名单只允许精确匹配公开目录接口。
+  return path.startsWith('/api/user/')
 }
 
 function extractApiMessage(data: unknown): string {

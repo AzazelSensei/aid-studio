@@ -4989,9 +4989,9 @@ SELECT source.skill_id,'1.2.0',source.visibility,source.invocation_scope,source.
    WHEN 'screenplay-write' THEN @screenplay_write_prompt
    WHEN 'screenplay-review' THEN @screenplay_review_prompt END,
  CASE identity.skill_code
-   WHEN 'screenplay' THEN '{"schemaVersion":2,"children":["screenplay-write","screenplay-review"],"interaction":"dynamic","stream":true,"reasoningEnabled":true,"showReasoning":true,"reasoningLevel":"high"}'
-   WHEN 'screenplay-write' THEN '{"schemaVersion":2,"actions":["CREATE","REWRITE","CONTINUE","NORMALIZE","REPAIR"],"canonicalFormat":"aid-plaintext"}'
-   WHEN 'screenplay-review' THEN '{"schemaVersion":2,"readOnly":true,"evidenceBased":true}' END,
+   WHEN 'screenplay' THEN '{"schemaVersion":2,"children":["screenplay-write","screenplay-review"],"interaction":"dynamic","stream":true,"structuredOutputEnabled":false,"reasoningEnabled":true,"showReasoning":true,"reasoningLevel":"high"}'
+   WHEN 'screenplay-write' THEN '{"schemaVersion":2,"actions":["CREATE","REWRITE","CONTINUE","NORMALIZE","REPAIR"],"canonicalFormat":"aid-plaintext","structuredOutputEnabled":false}'
+   WHEN 'screenplay-review' THEN '{"schemaVersion":2,"readOnly":true,"evidenceBased":true,"structuredOutputEnabled":false}' END,
  source.max_output_tokens,source.context_window_tokens,source.safety_margin_tokens,
  IF(@has_active_model=1,'0','1'),'0','system',NOW(),'system',NOW(),
  IF(@has_active_model=1,'剧本运行流式与版本模型池','等待管理员配置可用文本模型')
@@ -8286,4 +8286,47 @@ SELECT @ds41_model_id,'fim','text','{"code":"fim","label":"前后缀补全","gen
 INSERT INTO aid_ai_model_protocol_binding (model_id,capability_code,binding_code,protocol,definition_json,sort_order,create_time,create_by)
 SELECT @ds41_model_id,'fim','deepseek_fim','deepseek:fim','{"code":"deepseek_fim","protocol":"deepseek:fim","upstreamModel":"deepseek-flash","apiSuffix":"/beta/completions","enabled":true,"defaultBinding":true,"capability":{"inputModalities":["TEXT"],"outputModalities":["TEXT"],"supportsImageInput":false,"supportsVideoInput":false,"supportsAudioInput":false,"supportsDocumentInput":false,"maxInputImages":0,"maxInputVideos":0,"maxInputAudios":0,"maxInputDocuments":0,"inputImageFormats":["jpeg","png","gif","webp"],"maxInputImageFileSizeMb":32,"maxInputMediaTotalFileSizeMb":64,"inputMediaMaxUrlLength":8192,"inputImageMaxDimensionPixels":8192,"inputImageHighCountThreshold":15,"inputImageHighCountMaxDimensionPixels":4096,"inputMediaAllowedMessageRoles":["user"],"contextWindowTokens":1000000,"maxOutputTokens":4096,"concurrencyLimit":2500,"supportsStreaming":true,"supportsJsonObject":false,"supportsStructuredOutput":false,"supportsToolCalling":false,"supportsChatPrefix":false,"supportsReasoning":false,"supportsReasoningDisable":true,"supportsReasoningContent":false,"returnsReasoningContent":false,"supportsReasoningBudget":false,"defaultReasoningEnabled":false,"defaultReasoningLevel":null,"allowedReasoningLevels":[],"reasoningApiStyle":"DEEPSEEK","outputTokenApiField":"max_tokens","capabilityVerifiedAt":"2026-09-12","capabilitySourceUrls":["https://api-docs.deepseek.com/api/create-completion/","https://api-docs.deepseek.com/zh-cn/guides/fim_completion/","https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"]},"presentation":{"supportsTextInput":true,"supportsSystemPrompt":false,"supportsImageInput":false,"supportsMultiImageInput":false,"supportsAspectRatio":false,"supportsSizePreset":false,"supportsDuration":false,"maxOutputCount":1,"defaultOutputCount":1},"fixedParameters":{},"parameterMapping":{},"billingMode":"SKU","billingRule":{"mode":"SKU","chargeType":"TEXT","meterType":"TOKEN","preHold":true,"matchStrategy":"FIRST_HIT","params":[],"skus":[{"skuCode":"DEEPSEEK_V41_FLASH","skuName":"Flash Token","enabled":true,"priority":1,"match":{},"inputPricePerMillion":2,"outputPricePerMillion":8,"cachedInputPricePerMillion":0.04,"remark":"高峰价固定计价；百万Token缓存未命中2元、命中0.04元、输出8元。未自动按时段切换。"}],"settleRule":{"settleMode":"REFUND_ONLY","allowRefund":true,"allowExtraCharge":false,"usageSource":"PROVIDER_USAGE","charToTokenRatio":2},"officialPricing":{"currency":"CNY","unit":"MILLION_TOKENS","timezone":"Asia/Shanghai","peak":{"weekdays":[1,2,3,4,5],"intervals":[["09:00","12:00"],["14:00","18:00"]],"input":2,"cacheRead":0.04,"output":8},"offPeak":{"input":1,"cacheRead":0.02,"output":4}}},"costCredits":0}',0,NOW(),'system'
 FROM DUAL WHERE @ds41_model_id IS NOT NULL;
+COMMIT;
+
+-- 修正 DeepSeek Flash 普通聊天路由与当前官方上游模型名。
+START TRANSACTION;
+UPDATE aid_ai_model AS m
+JOIN aid_ai_provider AS p ON p.id = m.provider_id
+SET m.real_model_code = 'deepseek-flash',
+    m.model_name = CASE
+        WHEN m.model_name IN ('DeepSeek V4 Flash', 'DeepSeek V4.1 Flash') THEN 'DeepSeek V4.1 Flash'
+        ELSE m.model_name
+    END,
+    m.api_suffix = '/chat/completions',
+    m.remark = CASE
+        WHEN m.remark IS NULL THEN NULL
+        ELSE REPLACE(m.remark, 'DeepSeek V4 Flash', 'DeepSeek V4.1 Flash')
+    END,
+    m.config_version = COALESCE(m.config_version, 0) + 1,
+    m.update_time = NOW(),
+    m.update_by = 'system'
+WHERE p.provider_code = 'deepseek'
+  AND p.del_flag = '0'
+  AND m.model_code = 'deepseek-flash'
+  AND m.del_flag = '0';
+
+UPDATE aid_ai_model_protocol_binding AS b
+JOIN aid_ai_model AS m ON m.id = b.model_id
+JOIN aid_ai_provider AS p ON p.id = m.provider_id
+SET b.definition_json = JSON_SET(
+        b.definition_json,
+        '$.upstreamModel', 'deepseek-flash',
+        '$.apiSuffix', CASE
+            WHEN b.capability_code = 'fim' OR b.protocol = 'deepseek:fim'
+                THEN '/beta/completions'
+            ELSE '/chat/completions'
+        END
+    ),
+    b.update_time = NOW(),
+    b.update_by = 'system'
+WHERE p.provider_code = 'deepseek'
+  AND p.del_flag = '0'
+  AND m.model_code = 'deepseek-flash'
+  AND m.del_flag = '0'
+  AND JSON_VALID(b.definition_json);
 COMMIT;

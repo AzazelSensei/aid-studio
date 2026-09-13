@@ -59,6 +59,7 @@ public class ModelDefinitionService {
                         .map(route -> JSON.parseObject(route.getDefinitionJson(), ModelProtocolBinding.class)).toList());
                 return definition;
             }).toList();
+            model.setStructuredCapabilities(!configured.isEmpty());
             model.setCapabilities(configured.isEmpty() ? LegacyModelDefinitionConverter.convert(model) : configured);
             model.setLegacyAliases(old.stream().filter(alias -> Objects.equals(alias.getModelId(), model.getId())).toList());
         }
@@ -116,6 +117,7 @@ public class ModelDefinitionService {
         AidAiModel model = models.selectAidAiModelById(id);
         if (model != null) {
             List<ModelCapabilityDefinition> configured = definitions(id);
+            model.setStructuredCapabilities(!configured.isEmpty());
             model.setCapabilities(configured.isEmpty() ? LegacyModelDefinitionConverter.convert(model) : configured);
             model.setBusinessBindings(businessBindings.forModel(id));
             if (model.getBusinessBindings().isEmpty() && configured.isEmpty()) model.setBusinessBindings(businessBindings.legacyBindings(model));
@@ -130,9 +132,7 @@ public class ModelDefinitionService {
     public AidAiModel project(AidAiModel model, String capabilityCode, String businessDefaultsJson) {
         List<ModelCapabilityDefinition> configured = model.getCapabilities() == null ? definitions(model.getId()) : model.getCapabilities();
         if (configured.isEmpty()) configured = LegacyModelDefinitionConverter.convert(model);
-        List<ModelCapabilityDefinition> choices = configured.stream().filter(d -> Boolean.TRUE.equals(d.getEnabled()))
-                .filter(d -> capabilityCode == null || capabilityCode.isBlank() ? Boolean.TRUE.equals(d.getDefaultCapability())
-                        : Objects.equals(d.getCode(), capabilityCode) || Objects.equals(d.getGenerateMode(), capabilityCode)).toList();
+        List<ModelCapabilityDefinition> choices = ModelCapabilitySelection.candidates(configured, capabilityCode);
         if (choices.size() != 1) return null;
         ModelCapabilityDefinition definition = ModelSchemaPresentation.withBusinessDefaults(choices.get(0), businessDefaultsJson);
         List<ModelProtocolBinding> routes = definition.getBindings().stream()

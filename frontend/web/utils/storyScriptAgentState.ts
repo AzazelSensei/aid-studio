@@ -6,6 +6,7 @@ import type {
   UserSkillRuntimeResponseMode
 } from '~/types/user-skill'
 import type { EditorTextSelection } from '~/utils/quill/editorTextSelection'
+import { resolveSkillRuntimeModelCode } from '~/utils/storyScriptAgentRuntime'
 
 const STORAGE_PREFIX = 'aid-story-script-agent:v3:'
 const LEGACY_STORAGE_PREFIX = 'aid-story-script-agent:v2:'
@@ -31,6 +32,7 @@ export interface StoryScriptAgentProjectState {
   episodeId: number
   ownerId?: string
   skill: UserSkillDefinition
+  modelCode?: string
   autoOpen: boolean
   pendingPrompt?: string
   lastRunId?: number | null
@@ -163,6 +165,7 @@ export function createStoryScriptAgentHandoff(input: {
   title: string
   prompt: string
   skill: UserSkillDefinition
+  modelCode?: string
   globalSetting: GlobalSettingData
 }): boolean {
   // title/globalSetting are already persisted with the project. The handoff only carries Runtime intent.
@@ -173,6 +176,7 @@ export function createStoryScriptAgentHandoff(input: {
     projectId: input.projectId,
     episodeId: input.episodeId ?? 0,
     skill: input.skill,
+    modelCode: resolveSkillRuntimeModelCode(input.skill, input.modelCode) || undefined,
     autoOpen: true,
     pendingPrompt: input.prompt,
     activeRun: null,

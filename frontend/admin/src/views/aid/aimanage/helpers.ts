@@ -4,6 +4,7 @@ import {
   buildInputSupportFields,
   extractUnmanagedCapability,
   mergeManagedCapability,
+  normalizeAllowedScenes,
   parseInputModalities
 } from './capabilityMerge';
 
@@ -233,7 +234,7 @@ export function parseCapabilityJsonToModel(jsonStr?: string | null): CapabilityM
   m.klingScenario = typeof obj.klingScenario === 'string' ? obj.klingScenario.trim() || null : null;
   m.videoScenario = typeof obj.videoScenario === 'string' ? obj.videoScenario.trim() || null : null;
   m.seedanceTaskTypeOptions = normalizeStringList(obj.seedanceTaskTypeOptions);
-  m.allowedScenes = normalizeStringList(obj.allowedScenes);
+  m.allowedScenes = normalizeAllowedScenes(obj.allowedScenes);
   if (typeof obj.allowCustomWH === 'boolean') m.allowCustomWH = obj.allowCustomWH;
   m.durationMin = nonNegativeNumberOrNull(obj.durationMin);
   m.durationMax = nonNegativeNumberOrNull(obj.durationMax);
@@ -428,6 +429,7 @@ export function buildCapabilityJsonObject(form: Model, cap: CapabilityModel): Re
       textToImage: { ...cap.sceneRules.textToImage },
       imageToImage: { ...cap.sceneRules.imageToImage }
     };
+    obj.allowedScenes = normalizeAllowedScenes(cap.allowedScenes);
   } else if (t === 'video') {
     obj.durationOptions = cap.durationOptions.slice();
     obj.defaultDurationSeconds = form.defaultDurationSeconds || null;
@@ -453,7 +455,7 @@ export function buildCapabilityJsonObject(form: Model, cap: CapabilityModel): Re
     obj.klingScenario = cap.klingScenario || null;
     obj.videoScenario = cap.videoScenario || null;
     obj.seedanceTaskTypeOptions = cap.seedanceTaskTypeOptions.slice();
-    obj.allowedScenes = cap.allowedScenes.slice();
+    obj.allowedScenes = normalizeAllowedScenes(cap.allowedScenes);
   } else if (t === 'audio') {
     obj.audioOperation = cap.audioOperation || null;
     if (cap.ttsTextRequired != null) obj.ttsTextRequired = cap.ttsTextRequired === true;

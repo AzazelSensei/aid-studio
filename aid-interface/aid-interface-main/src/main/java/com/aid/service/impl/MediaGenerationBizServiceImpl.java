@@ -33,6 +33,7 @@ import com.aid.domain.dto.VideoGenReqDTO;
 import com.aid.media.dto.MediaImageGenerateRequest;
 import com.aid.media.dto.MediaTaskResponse;
 import com.aid.media.dto.MediaTextGenerateRequest;
+import com.aid.media.provider.StructuredOutputSupport;
 import com.aid.media.dto.MediaVideoGenerateRequest;
 import com.aid.media.service.IMediaGenerationService;
 import com.aid.service.IMediaGenerationBizService;
@@ -120,6 +121,8 @@ public class MediaGenerationBizServiceImpl implements IMediaGenerationBizService
         Map<String, Object> options = new LinkedHashMap<>();
         options.put("localRecordId", record.getId());
         options.put("payloadSnapshot", payloadJson);
+        // 分镜工作台的自由文本对话不声明 JSON 契约，禁止模型配置误带结构化输出。
+        options.put(StructuredOutputSupport.ENABLED_KEY, Boolean.FALSE);
         textRequest.setOptions(options);
 
         MediaTaskResponse taskResponse;

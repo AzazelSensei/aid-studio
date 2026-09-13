@@ -65,6 +65,8 @@ function StudioFlowStoryScriptAgentShellContent({
         skills={agent.skills}
         selectedSkillCode={agent.selectedSkillCode}
         onSkillChange={agent.selectSkill}
+        selectedModelCode={agent.selectedModelCode}
+        onModelChange={agent.selectModel}
         skillsLoading={agent.skillsLoading}
         skillsError={agent.skillsError}
         onSkillsRequest={() => { void agent.loadSkills() }}

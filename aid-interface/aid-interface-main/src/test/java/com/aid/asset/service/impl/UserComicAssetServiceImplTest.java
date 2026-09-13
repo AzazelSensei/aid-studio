@@ -55,7 +55,7 @@ class UserComicAssetServiceImplTest {
     }
 
     @Test
-    void allShouldPageRecommendedThenCustomThenOfficialNormal() {
+    void allShouldPageCustomThenRecommendedThenOfficialNormal() {
         MergedAssetPageRequest request = request("all", 3);
         when(officialAssetService.normalizeStyleCategoryFilter("all")).thenReturn(null);
         when(userAssetService.count(org.mockito.ArgumentMatchers
@@ -73,11 +73,37 @@ class UserComicAssetServiceImplTest {
 
         @SuppressWarnings("unchecked")
         List<MergedAssetVO> list = (List<MergedAssetVO>) data.get("list");
-        assertEquals(List.of("official", "custom", "official"),
+        assertEquals(List.of("custom", "official", "official"),
                 list.stream().map(MergedAssetVO::getSourceFlag).toList());
-        assertEquals(List.of(true, false, false),
+        assertEquals(List.of(false, true, false),
                 list.stream().map(MergedAssetVO::getIsRecommended).toList());
         assertEquals(3L, data.get("total"));
+    }
+
+    @Test
+    void anonymousShouldReturnOfficialAssetsOnly() {
+        MergedAssetPageRequest request = request("all", 2);
+        when(officialAssetService.normalizeStyleCategoryFilter("all")).thenReturn(null);
+        when(officialAssetService.count(org.mockito.ArgumentMatchers
+                .<Wrapper<AidComicAsset>>any())).thenReturn(1L, 1L);
+        when(officialAssetService.list(org.mockito.ArgumentMatchers
+                .<Wrapper<AidComicAsset>>any())).thenReturn(
+                List.of(official(1L, true, 10)),
+                List.of(official(2L, false, 1000)));
+
+        Map<String, Object> data = service.pageMergedAssets(request, null);
+
+        @SuppressWarnings("unchecked")
+        List<MergedAssetVO> list = (List<MergedAssetVO>) data.get("list");
+        assertEquals(List.of("official", "official"),
+                list.stream().map(MergedAssetVO::getSourceFlag).toList());
+        assertEquals(List.of(true, false),
+                list.stream().map(MergedAssetVO::getIsRecommended).toList());
+        assertEquals(2L, data.get("total"));
+        verify(userAssetService, never()).count(org.mockito.ArgumentMatchers
+                .<Wrapper<AidUserComicAsset>>any());
+        verify(userAssetService, never()).list(org.mockito.ArgumentMatchers
+                .<Wrapper<AidUserComicAsset>>any());
     }
 
     @Test

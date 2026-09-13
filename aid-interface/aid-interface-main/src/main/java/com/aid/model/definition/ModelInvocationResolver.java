@@ -53,12 +53,7 @@ public class ModelInvocationResolver {
             config.setInvocationBaseline(baseline);
         }
         String requested = nonblank(capabilityCode) ? capabilityCode : config.getCapabilityCode();
-        // 能力编码优先；同一生成模式可以包含对话、FIM 等多个独立能力。
-        boolean exactCapability = nonblank(requested) && all.stream()
-                .anyMatch(d -> Objects.equals(d.getCode(), requested));
-        List<ModelCapabilityDefinition> candidates = all.stream().filter(d -> Boolean.TRUE.equals(d.getEnabled()))
-                .filter(d -> nonblank(requested) ? Objects.equals(d.getCode(), requested) || (!exactCapability && Objects.equals(d.getGenerateMode(), requested))
-                        : Boolean.TRUE.equals(d.getDefaultCapability())).toList();
+        List<ModelCapabilityDefinition> candidates = ModelCapabilitySelection.candidates(all, requested);
         if (candidates.size() != 1) fail("模型能力不可用");
         ModelCapabilityDefinition definition = candidates.get(0);
         config.setResolvedDefinition(definition);

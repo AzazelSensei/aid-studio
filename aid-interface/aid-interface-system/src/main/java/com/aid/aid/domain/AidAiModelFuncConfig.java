@@ -53,6 +53,10 @@ public class AidAiModelFuncConfig extends BaseEntity implements Serializable
     @TableField(exist = false)
     private java.util.List<AidAiBusinessModelBinding> modelBindings;
 
+    /** 本次移出文本模型时，当前业务引用迁移到的保留模型；不持久化，不影响其他业务。 */
+    @TableField(exist = false)
+    private String removedModelReplacementCode;
+
     /** 状态：0启用 1停用 */
     @Excel(name = "状态：0启用 1停用")
     private String status;

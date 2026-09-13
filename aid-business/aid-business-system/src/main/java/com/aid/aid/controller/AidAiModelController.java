@@ -189,6 +189,17 @@ public class AidAiModelController extends BaseController
         return success(orchestrationService.unbindModelsFromPools(request, SecurityUtils.getUsername()));
     }
 
+    @Autowired
+    private com.aid.orchestration.ModelPoolRemovalPreviewService removalPreviewService;
+
+    @PreAuthorize("@ss.hasPermi('aid:funcconfig:edit')")
+    @PostMapping("/pool-bindings/removal-preview")
+    @io.swagger.v3.oas.annotations.Operation(summary = "预览移出模型的业务引用", description = "只读返回各业务池的智能体、矩阵和项目引用数量，以及保留在池中的可用替代文本模型；不调用模型，不修改配置。")
+    public AjaxResult previewModelPoolRemoval(@RequestBody ModelPoolBindingChangeRequest request)
+    {
+        return success(removalPreviewService.preview(request));
+    }
+
     /**
      * 查询AI底层模型配置与算力计费列表
      */

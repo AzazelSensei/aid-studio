@@ -412,7 +412,8 @@ public final class TextReasoningOptionsResolver {
     public static boolean isDeepSeekFlash(AiModelConfigVo model) {
         if (model == null || !"deepseek".equalsIgnoreCase(model.getProviderCode())) return false;
         String identity = modelIdentity(model);
-        return identity.contains("deepseek-flash") || identity.contains("deepseek-v4.1-flash");
+        return identity.contains("deepseek-flash") || identity.contains("deepseek-v4-flash")
+                || identity.contains("deepseek-v4.1-flash");
     }
 
     private static String normalizeDeepSeekFlashLevel(String level) {

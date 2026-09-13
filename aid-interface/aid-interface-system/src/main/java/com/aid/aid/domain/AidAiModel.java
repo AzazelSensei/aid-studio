@@ -198,6 +198,10 @@ public class AidAiModel extends BaseEntity implements Serializable
     @TableField(exist = false)
     private java.util.List<com.aid.aid.domain.model.ModelCapabilityDefinition> capabilities;
 
+    /** 能力是否已落入结构化子表；false 时 capabilities 仅为旧配置的兼容投影。 */
+    @TableField(exist = false)
+    private Boolean structuredCapabilities;
+
     /** 业务功能对模型能力的绑定。 */
     @TableField(exist = false)
     private java.util.List<AidAiBusinessModelBinding> businessBindings;

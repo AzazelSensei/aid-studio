@@ -53,9 +53,7 @@ public class ModelFunctionBindingReconciler {
                     .map(row -> JSON.parseObject(row.getDefinitionJson(), ModelCapabilityDefinition.class)).toList();
             if (definitions.isEmpty()) continue;
             List<ModelCapabilityDefinition> candidates = definitions.stream()
-                    .filter(d -> Boolean.TRUE.equals(d.getEnabled()))
-                    .filter(d -> function.getGenerateMode() == null || function.getGenerateMode().isBlank()
-                            || Objects.equals(d.getGenerateMode(), function.getGenerateMode())).toList();
+                    .filter(d -> Boolean.TRUE.equals(d.getEnabled())).toList();
             if (candidates.isEmpty()) {
                 fail("模型【" + modelLabel(id) + "】与模型池【" + poolLabel(function) + "】没有兼容能力");
             }

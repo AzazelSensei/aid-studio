@@ -500,11 +500,11 @@ public final class OpenAiStyleChatStream {
                 }
                 String content = textOrNull(delta.get("content"));
                 if (completions && delta.isMissingNode()) content = textOrNull(choice.get("text"));
-                if (StringUtils.isNotBlank(content)) {
+                if (StringUtils.isNotEmpty(content)) {
                     callbacks.onDelta(content);
                 }
                 String reasoning = textOrNull(delta.get("reasoning_content"));
-                if (StringUtils.isNotBlank(reasoning)) {
+                if (StringUtils.isNotEmpty(reasoning)) {
                     callbacks.onReasoningDelta(reasoning);
                 }
             }

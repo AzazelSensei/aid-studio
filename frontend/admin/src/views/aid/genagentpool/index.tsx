@@ -181,11 +181,13 @@ export default function GenAgentMatrix() {
     setAgentOpts([]);
     setModelOpts([]);
     setOptionsLoading(true);
-    Promise.all([
-      getPoolOptions(currentBiz),
-      listModelByFunc(currentBiz).catch(() => ({ data: [] }))
-    ])
-      .then(([res, modelRes]: any[]) => {
+    getPoolOptions(currentBiz)
+      .then(async (res: any) => {
+        // 当前接口已返回完整场景能力，仅旧服务端缺少字段时补查，避免重复读取同一业务模型池。
+        const options = res.data?.models || [];
+        const needsLegacyDetails = options.some((o: any) => !Object.prototype.hasOwnProperty.call(o, 'sizeOptions')
+          && !Object.prototype.hasOwnProperty.call(o, 'aspectRatioOptions'));
+        const modelRes: any = needsLegacyDetails ? await listModelByFunc(currentBiz) : undefined;
         if (stale) return;
         setAgentOpts((res.data?.agents || []).map((o: any) => ({ label: o.label, value: o.value })));
         const details = Array.isArray(modelRes?.data) ? modelRes.data : [];

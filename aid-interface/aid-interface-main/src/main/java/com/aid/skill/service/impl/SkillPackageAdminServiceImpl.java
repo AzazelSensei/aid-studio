@@ -599,6 +599,7 @@ public class SkillPackageAdminServiceImpl implements ISkillPackageAdminService {
         validateJsonObject(payload.getOutputSchemaJson(), "outputSchemaJson", "输出结构错误", result);
         validateJsonObject(StrUtil.blankToDefault(payload.getDefinitionJson(), "{}"),
                 "definitionJson", "定义内容错误", result);
+        validateStructuredOutputSetting(payload.getDefinitionJson(), result);
         if (payload.getContextWindowTokens() != null && payload.getMaxOutputTokens() != null
                 && payload.getSafetyMarginTokens() != null
                 && (long) payload.getMaxOutputTokens() + payload.getSafetyMarginTokens()
@@ -809,6 +810,20 @@ public class SkillPackageAdminServiceImpl implements ISkillPackageAdminService {
             }
         } catch (RuntimeException error) {
             issue(result.getErrors(), field, message);
+        }
+    }
+
+    /** Skill 版本结构化输出只能显式使用布尔值；缺省即普通文本。 */
+    private void validateStructuredOutputSetting(String definitionJson,
+                                                  SkillPackageAdminVO.ValidationResult result) {
+        try {
+            JSONObject definition = JSON.parseObject(StrUtil.blankToDefault(definitionJson, "{}"));
+            Object configured = definition == null ? null : definition.get("structuredOutputEnabled");
+            if (configured != null && !(configured instanceof Boolean)) {
+                issue(result.getErrors(), "definitionJson.structuredOutputEnabled", "结构化输出开关必须为布尔值");
+            }
+        } catch (RuntimeException ignored) {
+            // definitionJson 的通用校验已记录错误，避免重复提示。
         }
     }
 

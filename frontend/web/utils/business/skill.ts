@@ -44,7 +44,7 @@ function runMutationOnce<T>(
   return pending
 }
 
-/** Authenticated catalog containing only active Runtime entrypoints. */
+/** Public catalog containing only active Runtime entrypoints; execution still requires login. */
 export function userSkillRuntimeCatalog(): Promise<UserSkillDefinition[]> {
   const body = {}
   const key = stableRequestKey(body)

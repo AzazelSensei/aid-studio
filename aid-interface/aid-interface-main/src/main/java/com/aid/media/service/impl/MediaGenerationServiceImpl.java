@@ -1287,6 +1287,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 : raw.toString();
 
             if (streamFailed.get()) {
+                if (StringUtils.isBlank(aggregated) && StringUtils.isNotBlank(errRef.get())
+                        && isEmptyContentError(errRef.get())) {
+                    markEmptyTextResult(task);
+                }
                 boolean terminalWon = finishTextStreamFailure(task, errRef.get(), null,
                         MediaTaskStatus.PENDING.name(), capturedUsage.get());
                 if (terminalWon) {
@@ -1304,8 +1308,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             TaskErrorResult textValidation = toolMessage.get() == null ? TaskSuccessValidator.validateText(aggregatedText) : null;
             if (textValidation != null) {
                 log.error("文本流式任务状态为成功但正文为空，降级为 FAILED, taskId={}", task.getId());
-                String failureMessage = textValidation.getRawMessage() != null
-                        ? textValidation.getRawMessage() : textValidation.getUserMessage();
+                task.setErrorDetailJson(TaskErrorSnapshot.write(textValidation));
+                String failureMessage = textValidation.getUserMessage();
                 boolean terminalWon = finishTextStreamFailure(task, failureMessage, null,
                         MediaTaskStatus.PENDING.name(), capturedUsage.get());
                 if (terminalWon) {
@@ -1528,8 +1532,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 billingWon = true;
             } else {
                 boolean providerCallStarted = task.getUpstreamAcceptTime() != null;
-                boolean settleProviderCall = businessSucceeded || hasProviderUsage
-                        || (providerCallStarted && !isConfirmedTokenDanceRejection(task, usage));
+                boolean settleProviderCall = shouldSettleTextProviderCall(task, businessSucceeded,
+                        hasProviderUsage, providerCallStarted, isConfirmedTokenDanceRejection(task, usage));
                 billingWon = settleProviderCall
                         ? billingFacadeService.settleBilling(task, usage)
                         : billingFacadeService.refundBilling(task);
@@ -2027,6 +2031,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         if (submitResult == null) {
             task.setStatus(MediaTaskStatus.FAILED.name());
             task.setErrorMessage("Provider submit result empty");
+            markEmptyTextResult(task);
             return closeFailedSubmitBilling(task, null);
         }
         task.setProviderTaskId(submitResult.getProviderTaskId());
@@ -2112,6 +2117,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             return true;
         }
         task.setStatus(MediaTaskStatus.FAILED.name());
+        if (isEmptyTextSubmitResult(task, submitResult)) {
+            markEmptyTextResult(task);
+        }
         // 如果submitResult.rawResponse有值，则尝试从submitResult.rawResponse中解析错误信息
         if (StringUtils.isNotBlank(submitResult.getRawResponse())) {
             TaskErrorResult existing = TaskErrorSnapshot.read(task.getErrorDetailJson());
@@ -2139,7 +2147,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         return closeFailedSubmitBilling(task, submitResult.getUsage());
     }
 
-    /** 文本调用失败保守结算；未发出请求或 TokenDance 明确拒绝且无用量时退款。 */
+    /** 文本调用失败保守结算；未产出可用正文、未发出请求或明确拒绝时退款。 */
     private boolean closeFailedSubmitBilling(AidMediaTask task, Map<String, Object> usage) {
         task.setErrorDetailJson(TokenDanceResponseMapper.withObservedUsage(task.getErrorDetailJson(), usage));
         boolean textTask = MediaType.TEXT.name().equals(task.getMediaType());
@@ -2151,9 +2159,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             releaseConcurrency(task);
             return true;
         }
-        boolean settleProviderCall = textTask
-                && (hasProviderUsage || (task.getUpstreamAcceptTime() != null
-                        && !isConfirmedTokenDanceRejection(task, usage)));
+        boolean settleProviderCall = textTask && shouldSettleTextProviderCall(task, false,
+                hasProviderUsage, task.getUpstreamAcceptTime() != null,
+                isConfirmedTokenDanceRejection(task, usage));
         boolean billingWon = settleProviderCall
                 ? billingFacadeService.settleBilling(task, usage)
                 : billingFacadeService.refundBilling(task);
@@ -2163,6 +2171,42 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         syncTerminalFieldsIfNeeded(task, billingWon);
         releaseConcurrency(task);
         return billingWon;
+    }
+
+    private boolean isEmptyTextSubmitResult(AidMediaTask task, ProviderSubmitResult result) {
+        return MediaType.TEXT.name().equals(task.getMediaType())
+                && StringUtils.isBlank(result.getProviderTaskId())
+                && StringUtils.isBlank(result.getDirectText())
+                && result.getToolMessage() == null
+                && (StringUtils.isBlank(result.getRawResponse())
+                || isEmptyContentError(result.getRawResponse()));
+    }
+
+    private boolean isEmptyContentError(String message) {
+        if (StringUtils.isBlank(message)) {
+            return true;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("响应内容为空") || normalized.contains("正文为空")
+                || normalized.contains("content is empty") || normalized.contains("empty content");
+    }
+
+    private void markEmptyTextResult(AidMediaTask task) {
+        if (MediaType.TEXT.name().equals(task.getMediaType())) {
+            task.setErrorDetailJson(TaskErrorSnapshot.write(TaskSuccessValidator.validateText(null)));
+        }
+    }
+
+    private boolean isResultInvalid(AidMediaTask task) {
+        TaskErrorResult error = TaskErrorSnapshot.read(task.getErrorDetailJson());
+        return error != null && TaskErrorCode.RESULT_INVALID.name().equals(error.getErrorCode());
+    }
+
+    private boolean shouldSettleTextProviderCall(AidMediaTask task, boolean businessSucceeded,
+                                                  boolean hasProviderUsage, boolean providerCallStarted,
+                                                  boolean confirmedRejection) {
+        return businessSucceeded || (!isResultInvalid(task)
+                && (hasProviderUsage || (providerCallStarted && !confirmedRejection)));
     }
 
     /** 仅官方恢复标记确认的拒绝且没有任何实际用量时，不能按预扣上限收费。 */

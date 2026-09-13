@@ -16,6 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aid.aid.domain.AidAgent;
+import com.aid.aid.domain.AidAiBusinessModelBinding;
+import com.aid.aid.domain.AidAiModelProtocolBinding;
+import com.aid.aid.domain.model.ModelProtocolBinding;
+import com.aid.aid.mapper.AidAiBusinessModelBindingMapper;
+import com.aid.aid.mapper.AidAiModelProtocolBindingMapper;
+import com.aid.model.definition.ModelCapabilitySelection;
+import com.aid.orchestration.ModelPoolReferenceCodes;
+import org.springframework.transaction.annotation.Propagation;
 import com.aid.aid.domain.AidAiModel;
 import com.aid.aid.domain.AidAiModelCapability;
 import com.aid.aid.domain.AidAiModelFuncConfig;
@@ -94,6 +102,15 @@ public class AiOrchestrationServiceImpl implements IAiOrchestrationService
 
     @Autowired
     private AidAiModelCapabilityMapper modelCapabilityMapper;
+
+    @Autowired
+    private ModelPoolReferenceCodes referenceCodes;
+
+    @Autowired
+    private AidAiBusinessModelBindingMapper businessBindingMapper;
+
+    @Autowired
+    private AidAiModelProtocolBindingMapper protocolBindingMapper;
 
     @Autowired
     private IAidAiVoiceLibraryService voiceLibraryService;
@@ -186,7 +203,7 @@ public class AiOrchestrationServiceImpl implements IAiOrchestrationService
 
         if (Objects.nonNull(persisted))
         {
-            validateRemovedModelsNotInUse(config.getFuncCode(),
+            validateRemovedModelsNotInUse(config,
                     parseModelIdsSafe(persisted.getModelIds()), new LinkedHashSet<>(modelIds));
         }
     }
@@ -480,7 +497,9 @@ public class AiOrchestrationServiceImpl implements IAiOrchestrationService
             next.setGenerateMode(pool.getGenerateMode());
             next.setStatus(pool.getStatus());
             next.setModelIds(JSONUtil.toJsonStr(new ArrayList<>(nextIds)));
-            validateFunctionConfig(next);
+            if (!bind && request.getPoolReplacementCodes() != null)
+                next.setRemovedModelReplacementCode(request.getPoolReplacementCodes().get(pool.getId()));
+            prepareFunctionUpdate(next, operator);
             Map<Long, ModelPoolCapabilitySelection> selectionsForPool = requestedSelections
                     .getOrDefault(pool.getId(), Collections.emptyMap()).entrySet().stream()
                     .filter(entry -> !currentIds.contains(entry.getKey()))
@@ -736,19 +755,16 @@ public class AiOrchestrationServiceImpl implements IAiOrchestrationService
                 target.getId(), target.getAgentCode(), nextAgentCode, operator);
     }
 
-    private void validateRemovedModelsNotInUse(String funcCode, Set<Long> beforeIds, Set<Long> nextIds)
+    private void validateRemovedModelsNotInUse(AidAiModelFuncConfig config, Set<Long> beforeIds, Set<Long> nextIds)
     {
+        String funcCode = config.getFuncCode();
         Set<Long> removed = new LinkedHashSet<>(beforeIds);
         removed.removeAll(nextIds);
         if (CollectionUtil.isEmpty(removed))
         {
             return;
         }
-        List<String> removedCodes = modelService.list(Wrappers.<AidAiModel>lambdaQuery()
-                        .select(AidAiModel::getModelCode)
-                        .in(AidAiModel::getId, removed)
-                        .eq(AidAiModel::getDelFlag, NORMAL))
-                .stream().map(AidAiModel::getModelCode).filter(StrUtil::isNotBlank).collect(Collectors.toList());
+        List<String> removedCodes = referenceCodes.resolve(removed);
         if (CollectionUtil.isEmpty(removedCodes))
         {
             return;
@@ -767,8 +783,92 @@ public class AiOrchestrationServiceImpl implements IAiOrchestrationService
                 .eq(AidProjectGenConfig::getDelFlag, NORMAL));
         if (agentCount + matrixCount + projectCount > 0)
         {
-            throw new ServiceException("待移除模型仍被该业务的智能体、策略矩阵或项目配置引用，请先执行模型受控下线");
+            if (!"text".equals(config.getModelType()) || StrUtil.isBlank(config.getRemovedModelReplacementCode()))
+            {
+                log.info("移出模型仍有业务引用: funcCode={}, agents={}, matrix={}, projects={}", funcCode, agentCount, matrixCount, projectCount);
+                throw new ServiceException("请先选择业务替代模型");
+            }
+            requirePoolReplacement(config, nextIds);
         }
+    }
+
+    private AidAiModel requirePoolReplacement(AidAiModelFuncConfig config, Set<Long> nextIds)
+    {
+        if (!"text".equals(config.getModelType()) || nextIds.isEmpty())
+            throw replacementError("请选择可用替代文本模型");
+        AidAiModel replacement = modelService.getOne(Wrappers.<AidAiModel>lambdaQuery()
+                .in(AidAiModel::getId, nextIds)
+                .eq(AidAiModel::getModelCode, config.getRemovedModelReplacementCode())
+                .eq(AidAiModel::getModelType, "text").eq(AidAiModel::getStatus, NORMAL)
+                .eq(AidAiModel::getDelFlag, NORMAL));
+        if (replacement == null || providerService.count(Wrappers.<AidAiProvider>lambdaQuery()
+                .eq(AidAiProvider::getId, replacement.getProviderId()).eq(AidAiProvider::getStatus, NORMAL)
+                .eq(AidAiProvider::getDelFlag, NORMAL)) != 1)
+            throw replacementError("替代模型不可用");
+        AidAiModelFuncConfig previous = functionConfigService.getById(config.getId());
+        if (previous == null || !parseModelIdsSafe(previous.getModelIds()).contains(replacement.getId()))
+            throw replacementError("替代模型须已在池内");
+        List<ModelCapabilityDefinition> definitions = modelCapabilityMapper.selectList(Wrappers.<AidAiModelCapability>lambdaQuery()
+                .eq(AidAiModelCapability::getModelId, replacement.getId())).stream()
+                .map(row -> JSON.parseObject(row.getDefinitionJson(), ModelCapabilityDefinition.class)).toList();
+        if (!definitions.isEmpty()) {
+            var selections = (config.getModelBindings() == null
+                    ? businessBindingMapper.selectList(Wrappers.<AidAiBusinessModelBinding>lambdaQuery()
+                            .eq(AidAiBusinessModelBinding::getFuncCode, config.getFuncCode()))
+                    : config.getModelBindings()).stream()
+                    .filter(row -> Objects.equals(row.getModelId(), replacement.getId()) && Boolean.TRUE.equals(row.getDefaultCapability())).toList();
+            if (selections.size() != 1) throw replacementError("替代模型默认能力无效");
+            var selected = ModelCapabilitySelection.candidates(definitions, selections.get(0).getCapabilityCode());
+            if (selected.size() != 1) throw replacementError("替代模型能力不可用");
+            long routes = protocolBindingMapper.selectList(Wrappers.<AidAiModelProtocolBinding>lambdaQuery()
+                    .eq(AidAiModelProtocolBinding::getModelId, replacement.getId())
+                    .eq(AidAiModelProtocolBinding::getCapabilityCode, selected.get(0).getCode())).stream()
+                    .map(row -> JSON.parseObject(row.getDefinitionJson(), ModelProtocolBinding.class))
+                    .filter(route -> Boolean.TRUE.equals(route.getEnabled()) && Boolean.TRUE.equals(route.getDefaultBinding())).count();
+            if (routes != 1) throw replacementError("替代模型协议不可用");
+        }
+        return replacement;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void prepareFunctionUpdate(AidAiModelFuncConfig config, String operator)
+    {
+        validateFunctionConfig(config);
+        if (config.getId() == null || StrUtil.isBlank(config.getRemovedModelReplacementCode())) return;
+        AidAiModelFuncConfig before = functionConfigService.getById(config.getId());
+        if (before == null) return;
+        Set<Long> retained = parseModelIdsSafe(config.getModelIds());
+        Set<Long> removed = new LinkedHashSet<>(parseModelIdsSafe(before.getModelIds()));
+        removed.removeAll(retained);
+        if (removed.isEmpty()) return;
+        AidAiModel replacement = requirePoolReplacement(config, retained);
+        List<String> codes = referenceCodes.resolve(removed);
+        if (codes.isEmpty()) return;
+        String nextCode = replacement.getModelCode();
+        String biz = config.getFuncCode();
+        boolean agentsChanged = agentService.update(Wrappers.<AidAgent>lambdaUpdate()
+                .eq(AidAgent::getBizCategoryCode, biz).in(AidAgent::getModelCode, codes).eq(AidAgent::getDelFlag, NORMAL)
+                .set(AidAgent::getModelCode, nextCode).set(AidAgent::getUpdateBy, operator)
+                .set(AidAgent::getUpdateTime, DateUtils.getNowDate()));
+        agentPoolService.update(Wrappers.<AidGenAgentPool>lambdaUpdate()
+                .eq(AidGenAgentPool::getBizCategoryCode, biz).in(AidGenAgentPool::getModelCode, codes).eq(AidGenAgentPool::getDelFlag, NORMAL)
+                .set(AidGenAgentPool::getModelCode, nextCode).set(AidGenAgentPool::getResolution, null)
+                .set(AidGenAgentPool::getAspectRatio, null).set(AidGenAgentPool::getUpdateBy, operator)
+                .set(AidGenAgentPool::getUpdateTime, DateUtils.getNowDate()));
+        projectGenConfigMapper.update(null, Wrappers.<AidProjectGenConfig>lambdaUpdate()
+                .eq(AidProjectGenConfig::getSceneCode, biz).in(AidProjectGenConfig::getModelCode, codes).eq(AidProjectGenConfig::getDelFlag, NORMAL)
+                .set(AidProjectGenConfig::getModelCode, nextCode).set(AidProjectGenConfig::getResolution, null)
+                .set(AidProjectGenConfig::getAspectRatio, null).set(AidProjectGenConfig::getUpdateBy, operator)
+                .set(AidProjectGenConfig::getUpdateTime, DateUtils.getNowDate()));
+        log.info("文本模型移出当前业务池并迁移引用: funcCode={}, removedIds={}, replacementId={}, agentsChanged={}, operator={}",
+                biz, removed, replacement.getId(), agentsChanged, operator);
+    }
+
+    private ServiceException replacementError(String message)
+    {
+        log.info("业务池替代模型校验失败: {}", message);
+        return new ServiceException(message);
     }
 
     private AidAiModelFuncConfig requireFunctionConfig(Long id)

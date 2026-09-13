@@ -91,6 +91,21 @@ export const PRESET_ASPECT: Record<string, string[]> = {
 
 export const PRESET_DURATION = [...DURATION_CHOICES];
 
+/** 后台可直接选择的标准生成场景；供应商扩展场景仍由能力 JSON 无损保留。 */
+export const GENERATION_SCENE_OPTIONS: Record<'image' | 'video', Array<{ value: string; label: string }>> = {
+  image: [
+    { value: 'textToImage', label: '文生图（textToImage）' },
+    { value: 'imageToImage', label: '图生图／编辑（imageToImage）' }
+  ],
+  video: [
+    { value: 'textToVideo', label: '文生视频（textToVideo）' },
+    { value: 'imageToVideo', label: '首帧生视频（imageToVideo）' },
+    { value: 'startEndToVideo', label: '首尾帧生视频（startEndToVideo）' },
+    { value: 'referenceToVideo', label: '多模态参考生视频（referenceToVideo）' },
+    { value: 'videoToVideo', label: '视频编辑／延长（videoToVideo）' }
+  ]
+};
+
 /** 统一尺寸展示，不改写保存给上游的原始枚举值。 */
 export function formatSizeLabel(value: string): string {
   const text = value.trim();

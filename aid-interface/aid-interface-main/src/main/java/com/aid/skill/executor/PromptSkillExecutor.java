@@ -5,8 +5,11 @@ import com.aid.media.service.IMediaGenerationService;
 import com.aid.media.service.MediaTextStreamSink;
 import com.aid.media.provider.TextReasoningOptionsResolver;
 import com.aid.media.provider.StructuredOutputSupport;
+import com.aid.skill.domain.AidSkill;
 import lombok.RequiredArgsConstructor;
 import cn.hutool.crypto.SecureUtil;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -71,6 +74,7 @@ public class PromptSkillExecutor implements SkillExecutor {
 
         MediaTextGenerateRequest build() {
             boolean routing = "ROUTING".equals(context.getResponseMode());
+            boolean structuredOutput = routing || structuredOutputEnabled(context.getSkill());
             boolean reasoningEnabled = !routing
                     && Boolean.TRUE.equals(context.getRun().getEffectiveReasoningEnabled());
             Integer reasoningBudgetTokens = context.getRun().getReasoningBudgetTokens();
@@ -98,7 +102,7 @@ public class PromptSkillExecutor implements SkillExecutor {
             request.setCallIdentity(context.getCallIdentity());
             request.setTaskPromptDigest(request.getBizTaskType() + ":" + context.getRun().getId());
             Map<String, Object> options = new LinkedHashMap<>();
-            options.put(StructuredOutputSupport.ENABLED_KEY, routing);
+            options.put(StructuredOutputSupport.ENABLED_KEY, structuredOutput);
             if (context.getSkill().getMaxOutputTokens() != null) {
                 options.put(TextReasoningOptionsResolver.MAX_OUTPUT_TOKENS_KEY,
                         routing ? Math.min(context.getSkill().getMaxOutputTokens(), 2048)
@@ -106,6 +110,19 @@ public class PromptSkillExecutor implements SkillExecutor {
             }
             request.setOptions(options);
             return request;
+        }
+
+        private boolean structuredOutputEnabled(AidSkill skill) {
+            if (skill == null || skill.getDefinitionJson() == null || skill.getDefinitionJson().isBlank()) {
+                return false;
+            }
+            try {
+                JSONObject definition = JSON.parseObject(skill.getDefinitionJson());
+                return Boolean.TRUE.equals(definition.getBoolean("structuredOutputEnabled"));
+            } catch (RuntimeException ignored) {
+                // 历史异常定义按安全默认值处理，不能因此把普通文本请求切成 JSON Mode。
+                return false;
+            }
         }
     }
 }

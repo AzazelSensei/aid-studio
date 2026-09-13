@@ -18,8 +18,8 @@ public final class MergedAssetPagePlanner {
 
     /** 合并列表分段。 */
     public enum Segment {
-        OFFICIAL_RECOMMENDED,
         CUSTOM,
+        OFFICIAL_RECOMMENDED,
         OFFICIAL_NORMAL
     }
 
@@ -38,10 +38,10 @@ public final class MergedAssetPagePlanner {
         List<Slice> result = new ArrayList<>();
         long cursor = Math.max(0, from);
         int remaining = Math.max(0, pageSize);
-        remaining = append(result, Segment.OFFICIAL_RECOMMENDED, cursor, remaining, recommendedCount);
-        cursor = Math.max(0, cursor - recommendedCount);
         remaining = append(result, Segment.CUSTOM, cursor, remaining, customCount);
         cursor = Math.max(0, cursor - customCount);
+        remaining = append(result, Segment.OFFICIAL_RECOMMENDED, cursor, remaining, recommendedCount);
+        cursor = Math.max(0, cursor - recommendedCount);
         append(result, Segment.OFFICIAL_NORMAL, cursor, remaining, normalCount);
         return result;
     }

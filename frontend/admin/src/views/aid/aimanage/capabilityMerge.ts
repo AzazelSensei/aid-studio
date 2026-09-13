@@ -73,6 +73,31 @@ const isObject = (value: unknown): value is JsonObject =>
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
+const STANDARD_GENERATION_SCENES = [
+  'textOnly', 'textToImage', 'imageToImage', 'textToVideo', 'imageToVideo',
+  'startEndToVideo', 'referenceToVideo', 'videoToVideo'
+];
+const STANDARD_GENERATION_SCENE_MAP = new Map(
+  STANDARD_GENERATION_SCENES.map((scene) => [scene.toLowerCase(), scene])
+);
+
+/** 标准场景恢复为服务端约定的 camelCase；未知供应商扩展值保持原样。 */
+export function normalizeAllowedScenes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const scenes: string[] = [];
+  const seen = new Set<string>();
+  for (const value of raw) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    scenes.push(STANDARD_GENERATION_SCENE_MAP.get(key) || trimmed);
+  }
+  return scenes;
+}
+
 /** 解析新旧 capabilityJson 的输入模态；旧数据缺少数组时兼容四个布尔能力位。 */
 export function parseInputModalities(raw: unknown): string[] {
   const source = isObject(raw) ? raw : {};

@@ -11,11 +11,13 @@ function state(projectId: number, episodeId: number, runId: number): StoryScript
     projectId,
     episodeId,
     skill: { id: 1, skillCode: 'screenplay' },
+    modelCode: 'deepseek-v4-pro',
     autoOpen: false,
     activeRun: {
       idempotencyKey,
       invokeRequest: {
         skillCode: 'screenplay',
+        modelCode: 'deepseek-v4-pro',
         idempotencyKey,
         projectId,
         episodeId,
@@ -69,6 +71,7 @@ describe('storyScriptAgentState runtime scope', () => {
     expect(restored?.runId).toBeNull()
     expect(restored?.idempotencyKey).toBe('web-1200')
     expect(restored?.invokeRequest.idempotencyKey).toBe('web-1200')
+    expect(restored?.invokeRequest.modelCode).toBe('deepseek-v4-pro')
     expect(restored?.partialOutputTrusted).toBe(false)
   })
 })

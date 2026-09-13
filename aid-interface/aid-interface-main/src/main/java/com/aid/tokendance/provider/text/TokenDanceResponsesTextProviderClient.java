@@ -59,7 +59,6 @@ public class TokenDanceResponsesTextProviderClient extends AbstractTokenDanceTex
         TokenDancePayloadSupport.rejectUnknownRequestOptions(modelConfig, request.getOptions(), REQUEST_OPTION_KEYS);
         TokenDancePayloadSupport.rejectUnpricedHostedTools(
                 request.getOptions() == null ? null : request.getOptions().get("tools"));
-        rejectUnmappedStructuredOutput(request);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", TokenDancePayloadSupport.upstreamModel(modelConfig, request.getModelName()));
         body.put("input", buildInput(request));
@@ -81,16 +80,6 @@ public class TokenDanceResponsesTextProviderClient extends AbstractTokenDanceTex
         catch (JsonProcessingException exception)
         {
             throw new ServiceException("文本参数错误");
-        }
-    }
-
-    private void rejectUnmappedStructuredOutput(MediaTextGenerateRequest request)
-    {
-        Boolean enabled = TokenDancePayloadSupport.bool(request.getOptions(),
-                StructuredOutputSupport.ENABLED_KEY);
-        if (Boolean.TRUE.equals(enabled))
-        {
-            throw new ServiceException("结构化输出未适配");
         }
     }
 

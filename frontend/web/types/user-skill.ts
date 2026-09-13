@@ -1,4 +1,15 @@
-/** Runtime catalog only exposes public identity for callable entrypoints. */
+export interface UserSkillModelDefinition {
+  modelCode: string
+  modelName?: string | null
+  modelLogo?: string | null
+  providerName?: string | null
+  providerLogo?: string | null
+  defaultModel?: boolean
+  capability?: unknown
+  billing?: unknown
+}
+
+/** Runtime catalog exposes callable entrypoints and the models each Skill allows. */
 export interface UserSkillDefinition {
   id: number
   skillCode: string
@@ -7,6 +18,8 @@ export interface UserSkillDefinition {
   iconUrl?: string | null
   capability?: string | null
   outputKind?: string | null
+  defaultModelCode?: string | null
+  models?: UserSkillModelDefinition[]
 }
 
 export type UserSkillInputValue = string | number
@@ -94,6 +107,7 @@ export interface UserSkillRuntimeReference {
 
 export interface UserSkillRuntimeInvokeRequest {
   skillCode: string
+  modelCode?: string
   idempotencyKey: string
   force?: boolean
   projectId: number
@@ -125,6 +139,7 @@ export interface UserSkillRuntimeRunHandle {
   parentRunId?: number | null
   skillCode: string
   skillVersionId: number
+  modelCode?: string | null
   generation: number
   status: 'CREATED' | 'NEEDS_INPUT' | 'RUNNING' | 'CANCELING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED' | string
   stage: string

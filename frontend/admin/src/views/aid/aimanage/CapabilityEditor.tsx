@@ -3,7 +3,7 @@ import { Alert, Button, Checkbox, Input, InputNumber, Select, Space, Switch, Too
 import { PlusOutlined } from '@ant-design/icons';
 import type { CapabilityModel, Model } from './types';
 import {
-  PRESET_SIZE, PRESET_ASPECT, PRESET_DURATION, classifySizeOption,
+  PRESET_SIZE, PRESET_ASPECT, PRESET_DURATION, GENERATION_SCENE_OPTIONS, classifySizeOption,
   compareSizeOptions, formatSizeLabel
 } from './constants';
 
@@ -69,6 +69,9 @@ export default function CapabilityEditor({ modelType, form, cap, onCapChange, on
     cap.durationOptions.forEach((v) => { if (!all.includes(v)) all.push(v); });
     return all.sort((a, b) => a - b);
   }, [cap.durationOptions]);
+  const generationSceneOptions = modelType === 'image'
+    ? GENERATION_SCENE_OPTIONS.image
+    : modelType === 'video' ? GENERATION_SCENE_OPTIONS.video : [];
 
   const updateCap = (patch: Partial<CapabilityModel>) => onCapChange({ ...cap, ...patch });
 
@@ -1081,12 +1084,7 @@ export default function CapabilityEditor({ modelType, form, cap, onCapChange, on
             <GroupLabel text="允许的生成场景" keyName="allowedScenes" />
             <Select mode="multiple" style={{ width: '100%', maxWidth: 720 }}
               value={cap.allowedScenes}
-              options={[
-                ['textOnly', '纯文本'], ['textToImage', '文生图'], ['imageToImage', '图生图／编辑'],
-                ['textToVideo', '文生视频'], ['imageToVideo', '首帧生视频'],
-                ['startEndToVideo', '首尾帧生视频'], ['referenceToVideo', '多模态参考生视频'],
-                ['videoToVideo', '视频编辑／延长']
-              ].map(([value, label]) => ({ value, label: `${label}（${value}）` }))}
+              options={generationSceneOptions}
               onChange={(values) => updateCap({ allowedScenes: values })} />
             <div className="help-text">只启用官方明确支持的场景；严格校验开启时，未列出的场景会在计费前拒绝。</div>
           </div>

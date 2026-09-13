@@ -1038,7 +1038,7 @@ public class StoryboardScriptServiceImpl implements IStoryboardScriptService
             String digest = attempt == 0 ? baseDigest : baseDigest + "|纠偏:" + attempt;
             touchExtractTask(taskId, executionTraceId);
             String splitOutput = batchParentSubmissionGuard.executeManagedTask(taskId, executionTraceId,
-                    () -> helper.callLlmRaw(splitSystemPrompt, currentUserContent, modelCode,
+                    () -> helper.callLlmStructured(splitSystemPrompt, currentUserContent, modelCode,
                             taskId, userId, digest, BIZ_TASK_TYPE_STORYBOARD_SCRIPT,
                             // plotId 是不可变业务槽位；纠偏 attempt 只改变 messages SHA，不能改变
                             // stable slot，否则 attempt=1 已付费成功后崩溃会在续生的 attempt=0 漏回放。
@@ -1829,7 +1829,7 @@ public class StoryboardScriptServiceImpl implements IStoryboardScriptService
                             coverageBatch.charCount(), writerOutput);
                     String llmOutput = batchParentSubmissionGuard.executeManagedTask(
                             task.getId(), executionTraceId,
-                            () -> helper.callLlmRaw(promptTemplate, userContent, modelCode,
+                            () -> helper.callLlmStructured(promptTemplate, userContent, modelCode,
                                     task.getId(), userId, digest, BIZ_TASK_TYPE_STORYBOARD_SCRIPT,
                                     // batchId 是持久化且跨续生不变的业务槽位；batchIndex/retryRound
                                     // 仅属于本轮调度，实际输入差异交给 messages SHA 与 billing trace。
@@ -2587,7 +2587,7 @@ public class StoryboardScriptServiceImpl implements IStoryboardScriptService
                         batchPlan.getCharCount(), AGENT_CODE_STORYBOARD_WRITER.equals(agentCode));
 
                 String llmOutput = batchParentSubmissionGuard.executeManagedTask(taskId, executionTraceId,
-                        () -> helper.callLlmRaw(promptTemplate, userContent, modelCode,
+                        () -> helper.callLlmStructured(promptTemplate, userContent, modelCode,
                                 taskId, userId, digest, BIZ_TASK_TYPE_STORYBOARD_SCRIPT,
                                 // batchId 是持久化且跨续生不变的业务槽位；本轮 batchIndex/retryRound
                                 // 不进入 stable slot，实际输入仍由 messages SHA 严格区分。
