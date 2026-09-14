@@ -362,4 +362,10 @@ https://admin.example.com/Ab12Cd34Ef56
 
 本项目基于 [MIT License](LICENSE) 开源，版权归光子讯息(杭州)科技有限公司所有。
 
+## 鸣谢
+
 后台管理框架部分基于 [RuoYi-Vue](https://gitee.com/y_project/RuoYi-Vue)（MIT License）二次开发，特此致谢。
+
+| 社区 | 鸣谢 |
+|------|------|
+| <a href="https://linux.do/"><img src="https://cdn3.ldstatic.com/original/4X/c/c/d/ccd8c210609d498cbeb3d5201d4c259348447562.png" alt="Linux.do" width="64"></a> | 感谢 [Linux.do](https://linux.do/) 社区为中文技术交流与开源生态建设提供的支持。 |
