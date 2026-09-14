@@ -125,7 +125,7 @@ public final class TaskErrorPresentation
             case "MODEL_PARAMETER_INCOMPATIBLE" -> "设置不支持，调整后重试";
             case "UPSTREAM_CONTENT_FILTERED" -> "内容审核未通过";
             case "REAL_PERSON_RESTRICTED" -> "更换参考图后重试";
-            case "USER_FILE_DOWNLOAD_FAILED" -> "重新上传文件后重试";
+            case "USER_FILE_DOWNLOAD_FAILED" -> "素材读取失败，请重试";
             case "RESULT_INVALID", "RESULT_FORMAT_INVALID" -> "结果不可用，重新生成";
             case "OSS_PERSIST_FAILED" -> "结果保存失败，重新生成";
             case "PERSIST_FAILED" -> "任务保存失败，重新提交";

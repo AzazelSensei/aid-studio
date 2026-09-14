@@ -32,6 +32,10 @@ import java.util.concurrent.TimeUnit;
 public class VerifiedMediaMetadataService {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final long MAX_BYTES = 512L * 1024 * 1024;
+    private static final int DOWNLOAD_ATTEMPTS = 2;
+    private static final int CONNECT_TIMEOUT_MILLIS = 5_000;
+    private static final int READ_TIMEOUT_MILLIS = 5_000;
+    private static final long DOWNLOAD_TIMEOUT_SECONDS = 30;
     private final MediaUrlResolver urls;
     private final MpsConfigManager config;
 
@@ -41,46 +45,67 @@ public class VerifiedMediaMetadataService {
         HttpURLConnection connection = null;
         try {
             if (!urls.isSiteImageUrl(source)) throw new ServiceException("请使用本站素材");
-            String address = urls.toFullUrl(source);
-            for (int hop = 0; ; hop++) {
-                URI uri = URI.create(address);
-                if (!urls.isSiteImageUrl(address) || !Set.of("http", "https").contains(uri.getScheme())
-                        || uri.getHost() == null || uri.getUserInfo() != null || uri.getFragment() != null) {
-                    throw new ServiceException("素材地址不可用");
-                }
-                connection = (HttpURLConnection) uri.toURL().openConnection();
-                connection.setInstanceFollowRedirects(false);
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
-                int status = connection.getResponseCode();
-                if (status >= 300 && status < 400) {
-                    String location = connection.getHeaderField("Location");
-                    connection.disconnect();
-                    if (location == null || hop >= 3) throw new ServiceException("素材跳转无效");
-                    address = uri.resolve(location).toString();
-                    continue;
-                }
-                if (status != 200) throw new ServiceException("素材文件不可用");
-                break;
-            }
-            if (connection.getContentLengthLong() > MAX_BYTES) throw new ServiceException("素材文件过大");
-            file = Files.createTempFile("aid-input-metadata-", ".bin");
+            String originalAddress = urls.toFullUrl(source);
             long size = 0;
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-            try (InputStream input = connection.getInputStream(); OutputStream output = Files.newOutputStream(file)) {
-                byte[] buffer = new byte[65536];
-                int count;
-                while ((count = input.read(buffer)) != -1) {
-                    size += count;
-                    if (size > MAX_BYTES) throw new ServiceException("素材文件过大");
-                    if (System.nanoTime() > deadline) {
-                        throw TaskErrorPresentation.fromCode(
-                                TaskErrorCode.USER_FILE_DOWNLOAD_FAILED, "素材读取超时");
+            for (int attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+                String address = originalAddress;
+                try {
+                    for (int hop = 0; ; hop++) {
+                        URI uri = URI.create(address);
+                        if (!urls.isSiteImageUrl(address) || !Set.of("http", "https").contains(uri.getScheme())
+                                || uri.getHost() == null || uri.getUserInfo() != null || uri.getFragment() != null) {
+                            throw new ServiceException("素材地址不可用");
+                        }
+                        connection = (HttpURLConnection) uri.toURL().openConnection();
+                        connection.setInstanceFollowRedirects(false);
+                        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+                        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+                        int status = connection.getResponseCode();
+                        if (status >= 300 && status < 400) {
+                            String location = connection.getHeaderField("Location");
+                            connection.disconnect();
+                            connection = null;
+                            if (location == null || hop >= 3) throw new ServiceException("素材跳转无效");
+                            address = uri.resolve(location).toString();
+                            continue;
+                        }
+                        if (status != 200) throw new ServiceException("素材文件不可用");
+                        break;
                     }
-                    output.write(buffer, 0, count);
+                    if (connection.getContentLengthLong() > MAX_BYTES) throw new ServiceException("素材文件过大");
+                    file = Files.createTempFile("aid-input-metadata-", ".bin");
+                    size = 0;
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(DOWNLOAD_TIMEOUT_SECONDS);
+                    try (InputStream input = connection.getInputStream(); OutputStream output = Files.newOutputStream(file)) {
+                        byte[] buffer = new byte[65536];
+                        int count;
+                        while ((count = input.read(buffer)) != -1) {
+                            size += count;
+                            if (size > MAX_BYTES) throw new ServiceException("素材文件过大");
+                            if (System.nanoTime() > deadline) throw new SocketTimeoutException("media download deadline exceeded");
+                            output.write(buffer, 0, count);
+                        }
+                    }
+                    if (size == 0) throw new ServiceException("素材文件为空");
+                    break;
+                } catch (SocketTimeoutException ex) {
+                    if (connection != null) {
+                        connection.disconnect();
+                        connection = null;
+                    }
+                    if (file != null) {
+                        try {
+                            Files.deleteIfExists(file);
+                        } catch (Exception cleanupError) {
+                            log.warn("输入素材读取重试前临时文件待清理: {}", file);
+                        }
+                        file = null;
+                    }
+                    if (attempt >= DOWNLOAD_ATTEMPTS) throw ex;
+                    log.warn("输入素材读取超时，执行有限重试: host={}, kind={}, attempt={}/{}",
+                            safeHost(address), kind, attempt, DOWNLOAD_ATTEMPTS);
                 }
             }
-            if (size == 0) throw new ServiceException("素材文件为空");
             process = new ProcessBuilder(config.getMpsProperties().getFfprobePath(), "-v", "error",
                     "-protocol_whitelist", "file,pipe", "-select_streams", "audio".equals(kind) ? "a:0" : "v:0",
                     "-show_entries", "stream=codec_name,width,height,avg_frame_rate,duration:format=duration,format_name:format_tags=major_brand",
@@ -106,7 +131,7 @@ public class VerifiedMediaMetadataService {
             throw new ServiceException("素材解析中断");
         } catch (SocketTimeoutException ex) {
             throw TaskErrorPresentation.fromCode(
-                    TaskErrorCode.USER_FILE_DOWNLOAD_FAILED, "素材读取超时");
+                    TaskErrorCode.USER_FILE_DOWNLOAD_FAILED, "素材读取超时，请重试");
         } catch (ServiceException ex) { throw ex; }
         catch (Exception ex) {
             log.info("输入素材元数据不可用: {}", ex.getClass().getSimpleName());
@@ -118,6 +143,14 @@ public class VerifiedMediaMetadataService {
                 try { Files.deleteIfExists(file); }
                 catch (Exception ex) { log.warn("输入素材探测临时文件待清理: {}", file); }
             }
+        }
+    }
+
+    private static String safeHost(String address) {
+        try {
+            return URI.create(address).getHost();
+        } catch (Exception ignored) {
+            return "unknown";
         }
     }
 

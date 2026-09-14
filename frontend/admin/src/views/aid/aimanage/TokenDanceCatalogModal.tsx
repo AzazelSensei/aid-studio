@@ -126,6 +126,7 @@ const CAPABILITY_DISPLAY_FIELDS = Object.keys(FIELD_LABELS).filter((key) => ![
 
 const statusTag = (status?: string) => {
   if (status === 'CREATED_DISABLED') return <Tag color="success">已创建（停用）</Tag>;
+  if (status === 'PROTOCOL_ADDED') return <Tag color="processing">已补充能力/协议</Tag>;
   if (status === 'UNCHANGED') return <Tag>已有配置未改动</Tag>;
   if (status === 'VERIFIED') return <Tag color="success">已核验</Tag>;
   return <Tag color="warning">待核验</Tag>;
@@ -483,8 +484,9 @@ export default function TokenDanceCatalogModal({ open, provider, onClose, onImpo
           const response: any = await importTokenDanceCatalogModels(providerId, catalogStatus.catalogVersion, selections);
           const results = response.data || [];
           const created = results.filter((item: any) => item.status === 'CREATED_DISABLED').length;
+          const updated = results.filter((item: any) => item.status === 'PROTOCOL_ADDED').length;
           const unchanged = results.filter((item: any) => item.status === 'UNCHANGED').length;
-          message.success(`导入完成：新建并停用 ${created} 个，已有配置保持不变 ${unchanged} 个`);
+          message.success(`导入完成：新建并停用 ${created} 个，补充能力/协议 ${updated} 个，已有配置保持不变 ${unchanged} 个`);
           setSelectedProtocols({});
           await loadCatalog(keyword.trim(), scopeRef.current);
           try {

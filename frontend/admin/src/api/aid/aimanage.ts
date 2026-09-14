@@ -296,7 +296,7 @@ export interface TokenDanceCatalogSelection {
 
 export interface TokenDanceCatalogImportResult extends TokenDanceCatalogSelection {
   localModelId: number;
-  status: 'CREATED_DISABLED' | 'UNCHANGED';
+  status: 'CREATED_DISABLED' | 'PROTOCOL_ADDED' | 'UNCHANGED';
 }
 
 export function listTokenDanceCatalog(providerId: number, keyword?: string) {

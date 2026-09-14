@@ -333,7 +333,8 @@ public class ErrorNormalizer {
             return TaskErrorResult.of(TaskErrorCode.MODEL_PARAMETER_INCOMPATIBLE, rawMessage);
         }
         if (containsAny(lower, "private ip address not allowed", "must be a public http",
-                "download input image failed", "参考文件地址不可访问")) {
+                "download input image failed", "参考文件地址不可访问", "素材读取超时",
+                "素材下载超时", "素材读取失败", "素材文件不可用")) {
             return TaskErrorResult.of(TaskErrorCode.USER_FILE_DOWNLOAD_FAILED, rawMessage);
         }
         if (containsAny(lower, "上游未返回任务标识、url或文本结果", "模型返回为空", "合成为空",

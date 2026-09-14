@@ -433,7 +433,8 @@ public class TokenDanceCatalogServiceImpl implements ITokenDanceCatalogService {
             return true;
         }
         List<com.aid.aid.domain.model.ModelCapabilityDefinition> configured = new ArrayList<>(modelDefinitions.definitions(saved.getId()));
-        if (configured.isEmpty()) configured.addAll(com.aid.model.definition.LegacyModelDefinitionConverter.convert(saved));
+        boolean materializeLegacyDefinition = configured.isEmpty();
+        if (materializeLegacyDefinition) configured.addAll(com.aid.model.definition.LegacyModelDefinitionConverter.convert(saved));
         boolean changed = false;
         for (var definition : incoming) {
             var current = configured.stream().filter(d -> Objects.equals(d.getCode(), definition.getCode())).findFirst().orElse(null);
@@ -450,8 +451,13 @@ public class TokenDanceCatalogServiceImpl implements ITokenDanceCatalogService {
                 current.setBindings(routes);
             }
         }
-        if (changed) { saved.setCapabilities(configured); modelDefinitions.save(saved, false); }
-        return changed;
+        // 早期目录导入只保存了 capability_json。即使本次协议没有变化，也要把旧定义幂等落入
+        // 结构化能力、协议及业务绑定表，避免后台模型池仍按旧兼容路径解析。
+        if (changed || materializeLegacyDefinition) {
+            saved.setCapabilities(configured);
+            modelDefinitions.save(saved, false);
+        }
+        return changed || materializeLegacyDefinition;
     }
 
     /** 已完成成本编译时移除价格缺失阻断；协议联调和凭证检查仍在真正启用时执行。 */
