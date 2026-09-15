@@ -15,7 +15,7 @@ public final class UpgradeConfigKeys {
 
     /** 版本更新清单默认地址：配置缺失时兜底，保证开箱即用无需手工配置 */
     public static final String DEFAULT_MANIFEST_URL =
-            "https://gitee.com/gzxx-2025/aid-server/raw/master/release/latest.json";
+            "https://gitee.com/gzxx-2025/aid-studio/raw/master/release/latest.json";
 
     /** 使用教程默认地址：清单未下发时兜底 */
     public static final String DEFAULT_DOCS_URL =
@@ -23,14 +23,14 @@ public final class UpgradeConfigKeys {
 
     /** 提示词开发教程默认地址：清单未下发时兜底 */
     public static final String DEFAULT_PROMPT_DOCS_URL =
-            "https://gitee.com/gzxx-2025/aid-server/blob/master/doc/%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md";
+            "https://gitee.com/gzxx-2025/aid-studio/blob/master/doc/%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md";
 
     /** 升级器下载地址（页面只读） */
     public static final String KEY_UPDATER_DOWNLOAD_URL = "updater_download_url";
 
     /** 升级器下载默认地址：配置缺失时兜底 */
     public static final String DEFAULT_UPDATER_DOWNLOAD_URL =
-            "https://gitee.com/gzxx-2025/aid-server/releases";
+            "https://gitee.com/gzxx-2025/aid-studio/releases";
 
     /** 升级器健康文件路径（自动维护项） */
     public static final String KEY_UPDATER_HEALTH_FILE = "updater_health_file";

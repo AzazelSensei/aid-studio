@@ -12,9 +12,9 @@ Self-hosted AI video and comic production: script writing, storyboarding, image/
   <img src="https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MySQL-5.7-4479A1.svg" alt="MySQL">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5-red.svg" alt="MyBatis-Plus">
-  <a href="https://github.com/gzxx-2025/aid-server/actions/workflows/backend-build.yml"><img src="https://github.com/gzxx-2025/aid-server/actions/workflows/backend-build.yml/badge.svg?branch=main" alt="Backend build"></a>
-  <a href="https://github.com/gzxx-2025/aid-server/actions/workflows/admin-build.yml"><img src="https://github.com/gzxx-2025/aid-server/actions/workflows/admin-build.yml/badge.svg?branch=main" alt="Admin build"></a>
-  <a href="https://github.com/gzxx-2025/aid-server/actions/workflows/web-build.yml"><img src="https://github.com/gzxx-2025/aid-server/actions/workflows/web-build.yml/badge.svg?branch=main" alt="Web build"></a>
+  <a href="https://github.com/gzxx-2025/aid-studio/actions/workflows/backend-build.yml"><img src="https://github.com/gzxx-2025/aid-studio/actions/workflows/backend-build.yml/badge.svg?branch=main" alt="Backend build"></a>
+  <a href="https://github.com/gzxx-2025/aid-studio/actions/workflows/admin-build.yml"><img src="https://github.com/gzxx-2025/aid-studio/actions/workflows/admin-build.yml/badge.svg?branch=main" alt="Admin build"></a>
+  <a href="https://github.com/gzxx-2025/aid-studio/actions/workflows/web-build.yml"><img src="https://github.com/gzxx-2025/aid-studio/actions/workflows/web-build.yml/badge.svg?branch=main" alt="Web build"></a>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ Self-hosted AI video and comic production: script writing, storyboarding, image/
   &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc"><strong>使用教程</strong></a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://github.com/gzxx-2025/aid-server/releases"><strong>版本发布</strong></a>
+  <a href="https://github.com/gzxx-2025/aid-studio/releases"><strong>版本发布</strong></a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="SUPPORT.md"><strong>获取帮助</strong></a>
 </p>
@@ -80,9 +80,9 @@ AID 将不同内容形态分别组织为清晰的创作方向。每个方向都�
 
 ## 公开源码目录
 
-公开仓 `aid-server` 是 AID 的统一源码与部署发布入口，包含服务端、管理端、用户创作端、版本清单、部署脚本、增量 SQL 和独立升级器。三端使用同一个版本标签。
+公开仓 `aid-studio` 是 AID 的统一源码与部署发布入口，包含服务端、管理端、用户创作端、版本清单、部署脚本、增量 SQL 和独立升级器。三端使用同一个版本标签。
 
-公开源码统一发布到 [Gitee aid-server](https://gitee.com/gzxx-2025/aid-server) 和 [GitHub aid-server](https://github.com/gzxx-2025/aid-server)，两个平台使用相同提交和标签。
+公开源码统一发布到 [Gitee aid-studio](https://gitee.com/gzxx-2025/aid-studio) 和 [GitHub aid-studio](https://github.com/gzxx-2025/aid-studio)，两个平台使用相同提交和标签。
 
 | 路径 | 内容 |
 |------|------|
@@ -127,7 +127,7 @@ AID 的初始化数据会引用一组官方媒体资源，用于首次部署后�
 ## 系统架构
 
 ```text
-aid-server（Maven 多模块单体）
+aid-studio（Maven 多模块单体）
 ├── aid-admin        Spring Boot 启动入口与配置
 ├── aid-common       公共组件（安全/缓存/存储/支付/短信适配）
 ├── aid-business     Web 层
@@ -171,7 +171,7 @@ aid-server（Maven 多模块单体）
 推荐在一台全新的 64 位 Linux 服务器上使用统一安装器。下面的命令会把脚本保存到 `/root/aid-install.sh`，优先从 Gitee 下载，失败后自动切换 GitHub；下载成功后才执行脚本，不会把网络响应直接通过管道交给 Shell。
 
 ```bash
-cd /root && if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; elif command -v wget >/dev/null 2>&1; then wget -O /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || wget -O /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; else echo '请先安装 curl 或 wget'; exit 1; fi && sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=auto bash /root/aid-install.sh install
+cd /root && if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://gitee.com/gzxx-2025/aid-studio/raw/master/deploy/aid.sh || curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/deploy/aid.sh; elif command -v wget >/dev/null 2>&1; then wget -O /root/aid-install.sh https://gitee.com/gzxx-2025/aid-studio/raw/master/deploy/aid.sh || wget -O /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/deploy/aid.sh; else echo '请先安装 curl 或 wget'; exit 1; fi && sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=auto bash /root/aid-install.sh install
 ```
 
 `install` 是智能入口：未部署时默认进入 Docker 首次安装，已经部署时转入更新检查。也可以明确选择部署方式：
@@ -278,7 +278,7 @@ https://admin.example.com/Ab12Cd34Ef56
 
 ### 配置 AI 厂商
 
-公开仓库中的管理端和用户创作端源码分别位于 [`frontend/admin`](https://github.com/gzxx-2025/aid-server/tree/main/frontend/admin) 与 [`frontend/web`](https://github.com/gzxx-2025/aid-server/tree/main/frontend/web)。启动后在后台「AI模型配置」中配置所需厂商的凭证、模型能力与计费规则，再启用模型。完成视频与配音流程时，还需配置对应的视频与语音模型。
+公开仓库中的管理端和用户创作端源码分别位于 [`frontend/admin`](https://github.com/gzxx-2025/aid-studio/tree/main/frontend/admin) 与 [`frontend/web`](https://github.com/gzxx-2025/aid-studio/tree/main/frontend/web)。启动后在后台「AI模型配置」中配置所需厂商的凭证、模型能力与计费规则，再启用模型。完成视频与配音流程时，还需配置对应的视频与语音模型。
 
 ## 文档导航
 
@@ -391,8 +391,8 @@ https://admin.example.com/Ab12Cd34Ef56
 
 欢迎中文或英文 Issue 与 Pull Request。先阅读[贡献指南](CONTRIBUTING.md)与[社区行为准则](CODE_OF_CONDUCT.md)，再选择适合自己的贡献：复现问题、改进文档、修复缺陷或适配公开模型协议。
 
-- [报告问题 / 提出建议](https://github.com/gzxx-2025/aid-server/issues/new/choose)
-- [查找适合首次贡献的任务](https://github.com/gzxx-2025/aid-server/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
+- [报告问题 / 提出建议](https://github.com/gzxx-2025/aid-studio/issues/new/choose)
+- [查找适合首次贡献的任务](https://github.com/gzxx-2025/aid-studio/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
 - [报告安全问题](SECURITY.md)
 
 如果 AID 对你有帮助，欢迎 Star 收藏，也欢迎分享有权公开的创作案例和部署经验。

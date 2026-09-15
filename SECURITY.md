@@ -4,7 +4,7 @@
 
 Do not publish vulnerability details, exploit code, credentials or affected user data in public issues, pull requests or group chats.
 
-Open the [repository Security tab](https://github.com/gzxx-2025/aid-server/security) and choose **Report a vulnerability** to contact the maintainers privately. You need to sign in to GitHub. If that option is unavailable, contact a maintainer privately through the [community contact entry](README.md#交流与反馈) and ask for a secure reporting channel before sending technical details. Do not post the report to the group.
+Open the [repository Security tab](https://github.com/gzxx-2025/aid-studio/security) and choose **Report a vulnerability** to contact the maintainers privately. You need to sign in to GitHub. If that option is unavailable, contact a maintainer privately through the [community contact entry](README.md#交流与反馈) and ask for a secure reporting channel before sending technical details. Do not post the report to the group.
 
 请在 GitHub 仓库 Security 页使用 **Report a vulnerability** 私密报告。若入口不可用，可通过[社区联系入口](README.md#交流与反馈)私下联系维护者，先确认安全接收渠道，再提供细节；不要在公开 Issue、PR 或交流群发布漏洞利用方法及敏感数据。
 
@@ -19,7 +19,7 @@ Open the [repository Security tab](https://github.com/gzxx-2025/aid-server/secur
 
 ## Versions and coordination / 版本与协调
 
-Check the [latest stable release](https://github.com/gzxx-2025/aid-server/releases/latest) when identifying affected versions. Include older versions if you have verified them, and clearly identify prereleases. This project does not publish a long-term support or security-backport schedule.
+Check the [latest stable release](https://github.com/gzxx-2025/aid-studio/releases/latest) when identifying affected versions. Include older versions if you have verified them, and clearly identify prereleases. This project does not publish a long-term support or security-backport schedule.
 
 Maintainers assess reports and coordinate fixes and disclosure with the reporter. Please allow that coordination before publishing details. No fixed response time or bounty is promised by this policy.
 

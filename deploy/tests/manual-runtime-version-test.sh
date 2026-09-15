@@ -25,8 +25,8 @@ unset AID_JDK_DOWNLOAD_URL AID_MANUAL_JDK_DOWNLOAD_URL
   || { echo 'FAIL: FFmpeg domestic mirror release drifted' >&2; exit 1; }
 unset AID_FFMPEG_PRIMARY_URL_AMD64 AID_FFMPEG_TENCENT_URL_AMD64 AID_FFMPEG_ALIYUN_URL_AMD64
 mapfile -t ffmpeg_amd64_urls < <(ffmpeg_runtime_download_urls amd64)
-[[ "${ffmpeg_amd64_urls[0]}" == 'https://gitee.com/gzxx-2025/aid-server/releases/download/v1.0.0-beta.6/ffmpeg-8.1.2-amd64-static.tar.xz' \
-   && "${ffmpeg_amd64_urls[1]}" == 'https://github.com/gzxx-2025/aid-server/releases/download/v1.0.0-beta.6/ffmpeg-8.1.2-amd64-static.tar.xz' ]] \
+[[ "${ffmpeg_amd64_urls[0]}" == 'https://gitee.com/gzxx-2025/aid-studio/releases/download/v1.0.0-beta.6/ffmpeg-8.1.2-amd64-static.tar.xz' \
+   && "${ffmpeg_amd64_urls[1]}" == 'https://github.com/gzxx-2025/aid-studio/releases/download/v1.0.0-beta.6/ffmpeg-8.1.2-amd64-static.tar.xz' ]] \
   || { echo 'FAIL: FFmpeg download order must be Gitee then GitHub' >&2; exit 1; }
 AID_FFMPEG_PRIMARY_URL_AMD64="${ffmpeg_amd64_urls[0]}"
 mapfile -t ffmpeg_amd64_urls < <(ffmpeg_runtime_download_urls amd64)

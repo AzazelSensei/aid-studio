@@ -5,9 +5,9 @@
   "publishedAt": "2026-09-10T14:02:41Z",
   "minimumAppVersion": "2.0.1",
   "bundle": {
-    "url": "https://gitee.com/gzxx-2025/aid-server/raw/master/model-catalog/tokendance/tokendance-catalog-2026.09.10.2.json",
+    "url": "https://gitee.com/gzxx-2025/aid-studio/raw/master/model-catalog/tokendance/tokendance-catalog-2026.09.10.2.json",
     "mirrors": [
-      "https://raw.githubusercontent.com/gzxx-2025/aid-server/master/model-catalog/tokendance/tokendance-catalog-2026.09.10.2.json"
+      "https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/model-catalog/tokendance/tokendance-catalog-2026.09.10.2.json"
     ],
     "sha256": "b50623e7a82158f848125211f8025ae7610ce9b0ffed8490419456bbac081e6d",
     "size": 1424454

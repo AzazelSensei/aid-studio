@@ -95,8 +95,8 @@ Write-Json $bundlePath $bundle
 
 $bundleHash = (Get-FileHash -LiteralPath $bundlePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $bundleSize = (Get-Item -LiteralPath $bundlePath).Length
-$giteeBase = 'https://gitee.com/gzxx-2025/aid-server/raw/master/model-catalog/tokendance/'
-$githubBase = 'https://raw.githubusercontent.com/gzxx-2025/aid-server/master/model-catalog/tokendance/'
+$giteeBase = 'https://gitee.com/gzxx-2025/aid-studio/raw/master/model-catalog/tokendance/'
+$githubBase = 'https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/model-catalog/tokendance/'
 $manifest = [ordered]@{
     schemaVersion = 1
     catalogId = 'tokendance'

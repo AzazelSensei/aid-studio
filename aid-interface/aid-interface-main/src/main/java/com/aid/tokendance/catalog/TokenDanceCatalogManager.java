@@ -66,8 +66,8 @@ public class TokenDanceCatalogManager {
     private static final Set<String> TRUSTED_HOST_SUFFIXES = Set.of(
             "gitee.com", "github.com", "githubusercontent.com");
     private static final List<String> DEFAULT_CATALOG_MANIFEST_URLS = List.of(
-            "https://gitee.com/gzxx-2025/aid-server/raw/master/model-catalog/tokendance/latest.json",
-            "https://raw.githubusercontent.com/gzxx-2025/aid-server/master/model-catalog/tokendance/latest.json");
+            "https://gitee.com/gzxx-2025/aid-studio/raw/master/model-catalog/tokendance/latest.json",
+            "https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/model-catalog/tokendance/latest.json");
 
     private final ConfigService configService;
     private final AtomicReference<TokenDanceCatalogSnapshot> active = new AtomicReference<>();

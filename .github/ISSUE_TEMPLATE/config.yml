@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability / 安全漏洞
-    url: https://github.com/gzxx-2025/aid-server/security
+    url: https://github.com/gzxx-2025/aid-studio/security
     about: Use Report a vulnerability for private reporting / 使用 Report a vulnerability 私密报告。
   - name: Usage tutorials / 使用教程
     url: https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc

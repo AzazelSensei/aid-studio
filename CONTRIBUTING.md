@@ -6,7 +6,7 @@ Please follow the [code of conduct](CODE_OF_CONDUCT.md). For usage questions, se
 
 ## Before making a change / 开始之前
 
-1. Search [existing issues](https://github.com/gzxx-2025/aid-server/issues) to avoid duplicate work.
+1. Search [existing issues](https://github.com/gzxx-2025/aid-studio/issues) to avoid duplicate work.
 2. For a large feature, open an issue describing the user need, proposed scope and compatibility impact before implementing it.
 3. Fork the public repository, create a focused branch from its default branch and keep unrelated changes out of the PR.
 4. Use only source code, examples and media you have permission to contribute. Never include real API keys, accounts, database exports, private prompts, signed media URLs or deployment configuration.
@@ -47,4 +47,4 @@ Document checks you could not run and why. Remove temporary test harnesses, logs
 - Include user-facing documentation updates. For changes that affect release notes, use the single `## 未发布` section at the top of `version/version.md`; do not create a release version or tag in a PR.
 - Run `git diff --check`, inspect the full diff and submit a focused PR to the public repository's default branch.
 
-Maintainers review contributions and coordinate releases. A merged PR is not itself a released version; users should consult the [release page](https://github.com/gzxx-2025/aid-server/releases).
+Maintainers review contributions and coordinate releases. A merged PR is not itself a released version; users should consult the [release page](https://github.com/gzxx-2025/aid-studio/releases).

@@ -4,7 +4,7 @@
 
 **An open-source, self-hosted production platform for AI short dramas, animated comics and films.** Write scripts, organize characters and scenes, build storyboards, generate images and videos, and add voiceovers in a project-based workflow.
 
-[Live website](https://www.aidstudio.com.cn/) · [Quick start](#quick-start) · [Releases](https://github.com/gzxx-2025/aid-server/releases) · [Help](SUPPORT.md) · [Contribute](CONTRIBUTING.md)
+[Live website](https://www.aidstudio.com.cn/) · [Quick start](#quick-start) · [Releases](https://github.com/gzxx-2025/aid-studio/releases) · [Help](SUPPORT.md) · [Contribute](CONTRIBUTING.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Java 17](https://img.shields.io/badge/Java-17-orange.svg)
@@ -61,7 +61,7 @@ Run the following in a Bash shell on the target server. The script is saved befo
 ```bash
 curl -fL --retry 3 --connect-timeout 15 \
   -o aid-install.sh \
-  https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh
+  https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/deploy/aid.sh
 ```
 
 If GitHub is inaccessible, download the same installer from Gitee instead:
@@ -69,7 +69,7 @@ If GitHub is inaccessible, download the same installer from Gitee instead:
 ```bash
 curl -fL --retry 3 --connect-timeout 15 \
   -o aid-install.sh \
-  https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh
+  https://gitee.com/gzxx-2025/aid-studio/raw/master/deploy/aid.sh
 ```
 
 Continue only after a successful download. Review `aid-install.sh`, then run:
@@ -138,7 +138,7 @@ The backend uses Java 17, Spring Boot 3.5, MyBatis-Plus, MySQL 5.7 and Redis. Ro
 ## Help and contributions
 
 - [Support](SUPPORT.md): installation, configuration and usage questions.
-- [Issues](https://github.com/gzxx-2025/aid-server/issues/new/choose): reproducible bugs and feature requests, in Chinese or English.
+- [Issues](https://github.com/gzxx-2025/aid-studio/issues/new/choose): reproducible bugs and feature requests, in Chinese or English.
 - [Contributing](CONTRIBUTING.md): documentation, translations, fixes and public model integrations.
 - [Code of conduct](CODE_OF_CONDUCT.md): expectations for community participation.
 - [Security policy](SECURITY.md): report vulnerabilities privately.

@@ -51,13 +51,13 @@ AID 将不同内容形态分别组织为清晰的创作方向。管理员可以�
 
 ## 交流与反馈
 
-部署、模型配置、二次开发或创作流程接入遇到问题，可以前往服务端仓库 [aid-server](https://gitee.com/gzxx-2025/aid-server) README 顶部扫码加入交流群，也欢迎提交 Issue。
+部署、模型配置、二次开发或创作流程接入遇到问题，可以前往服务端仓库 [aid-studio](https://gitee.com/gzxx-2025/aid-studio) README 顶部扫码加入交流群，也欢迎提交 Issue。
 
 ## 仓库矩阵
 
 | 端 | 说明 | Gitee | GitHub |
 |----|------|-------|--------|
-| aid-server | Java 服务端（统一发布入口） | [gitee](https://gitee.com/gzxx-2025/aid-server) | [github](https://github.com/gzxx-2025/aid-server) |
+| aid-studio | Java 服务端（统一发布入口） | [gitee](https://gitee.com/gzxx-2025/aid-studio) | [github](https://github.com/gzxx-2025/aid-studio) |
 | aid-admin | 运营管理端（本仓库） | [gitee](https://gitee.com/gzxx-2025/aid-admin) | [github](https://github.com/gzxx-2025/aid-admin) |
 | aid-web | 用户创作端 | [gitee](https://gitee.com/gzxx-2025/aid-web) | [github](https://github.com/gzxx-2025/aid-web) |
 
@@ -80,7 +80,7 @@ AID 将不同内容形态分别组织为清晰的创作方向。管理员可以�
 
 ## 部署与在线升级
 
-AID Admin 不需要单独在生产服务器安装。服务端统一安装器会按同一版本标签拉取并构建三端代码，把管理端静态产物交给 Nginx 托管；Docker 和 systemd 两种部署方式共用同一套后台页面与升级协议。完整安装命令、配置项和风险说明见 [aid-server 部署指南](https://gitee.com/gzxx-2025/aid-server/blob/master/deploy/README.md)。
+AID Admin 不需要单独在生产服务器安装。服务端统一安装器会按同一版本标签拉取并构建三端代码，把管理端静态产物交给 Nginx 托管；Docker 和 systemd 两种部署方式共用同一套后台页面与升级协议。完整安装命令、配置项和风险说明见 [aid-studio 部署指南](https://gitee.com/gzxx-2025/aid-studio/blob/master/deploy/README.md)。
 
 生产部署完成后，管理端默认使用独立端口和随机访问码，例如：
 

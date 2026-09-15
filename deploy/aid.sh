@@ -293,8 +293,8 @@ warn() { echo -e "[$(date '+%H:%M:%S')] ${C_YELLOW}[提示]${C_RESET} $1"; }
 err()  { echo -e "[$(date '+%H:%M:%S')] ${C_RED}[失败]${C_RESET} $1" >&2; }
 die()  { err "$1"; exit 1; }
 
-MANIFEST_PRIMARY_URL="${AID_MANIFEST_URL:-https://gitee.com/gzxx-2025/aid-server/raw/master/release/latest.json}"
-MANIFEST_FALLBACK_URL="https://raw.githubusercontent.com/gzxx-2025/aid-server/master/release/latest.json"
+MANIFEST_PRIMARY_URL="${AID_MANIFEST_URL:-https://gitee.com/gzxx-2025/aid-studio/raw/master/release/latest.json}"
+MANIFEST_FALLBACK_URL="https://raw.githubusercontent.com/gzxx-2025/aid-studio/master/release/latest.json"
 TRUSTED_MANIFEST_PUBLIC_KEY="9Ez/VMofgjCU0CNmE6Jq8LKLNyfDQqbbvNTTGV5BYrk="
 INSTALLER_ROOT="${DATA_ROOT}/installer"
 MANAGED_SCRIPT="${INSTALLER_ROOT}/deploy/aid.sh"
@@ -1543,8 +1543,8 @@ ffmpeg_runtime_download_urls() { # ffmpeg_runtime_download_urls <amd64|arm64>
   local custom="" gitee="" tencent="" aliyun="" github=""
   local -a candidates=()
   name="ffmpeg-${FFMPEG_RUNTIME_VERSION}-${arch}-static.tar.xz"
-  gitee="https://gitee.com/gzxx-2025/aid-server/releases/download/${FFMPEG_RUNTIME_MIRROR_TAG}/${name}"
-  github="https://github.com/gzxx-2025/aid-server/releases/download/${FFMPEG_RUNTIME_MIRROR_TAG}/${name}"
+  gitee="https://gitee.com/gzxx-2025/aid-studio/releases/download/${FFMPEG_RUNTIME_MIRROR_TAG}/${name}"
+  github="https://github.com/gzxx-2025/aid-studio/releases/download/${FFMPEG_RUNTIME_MIRROR_TAG}/${name}"
   case "${arch}" in
     amd64)
       custom="${AID_FFMPEG_PRIMARY_URL_AMD64:-}"
@@ -4204,7 +4204,7 @@ prepare_exact_node() {
       officialUrl="https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/${name}"
       # 国内兼容包固定随首个采用该工具链的正式 AID Release 发布，避免为了工具链
       # 暴露额外 Git Tag；内容仍以 Node.js unofficial-builds 固定 SHA256 为信任边界。
-      cnUrl="https://gitee.com/gzxx-2025/aid-server/releases/download/v1.0.0-beta.2/${name}"
+      cnUrl="https://gitee.com/gzxx-2025/aid-studio/releases/download/v1.0.0-beta.2/${name}"
       warn "检测到 glibc ${glibcVersion}，将使用 Node.js ${NODE_VERSION} 的 glibc 2.17 兼容构建"
     else
       officialUrl="https://nodejs.org/dist/v${NODE_VERSION}/${name}"

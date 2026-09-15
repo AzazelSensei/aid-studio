@@ -9,11 +9,11 @@
 | Installation, upgrade or recovery / 安装升级 | [Deployment guide / 部署指南](deploy/README.md) |
 | Getting started / 首次使用 | [中文说明](README.md#快速开始) · [English guide](README.en.md#quick-start) |
 | Usage walkthrough / 操作教程 | [Usage tutorials (Chinese) / 使用教程](https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc) |
-| Reproducible bug or feature request / 缺陷或建议 | [GitHub issue templates](https://github.com/gzxx-2025/aid-server/issues/new/choose) |
-| Configuration or deployment question / 配置部署咨询 | [GitHub issues](https://github.com/gzxx-2025/aid-server/issues/new/choose) or [community chat / 交流群](README.md#交流与反馈) |
+| Reproducible bug or feature request / 缺陷或建议 | [GitHub issue templates](https://github.com/gzxx-2025/aid-studio/issues/new/choose) |
+| Configuration or deployment question / 配置部署咨询 | [GitHub issues](https://github.com/gzxx-2025/aid-studio/issues/new/choose) or [community chat / 交流群](README.md#交流与反馈) |
 | Security vulnerability / 安全漏洞 | [Private reporting instructions / 私密报告说明](SECURITY.md) |
 
-GitHub is the primary issue tracker so reports can be searched and followed in one place. The [Gitee mirror](https://gitee.com/gzxx-2025/aid-server) provides another source access point. Avoid filing the same report on multiple platforms; if you already did, link the reports.
+GitHub is the primary issue tracker so reports can be searched and followed in one place. The [Gitee mirror](https://gitee.com/gzxx-2025/aid-studio) provides another source access point. Avoid filing the same report on multiple platforms; if you already did, link the reports.
 
 建议优先在 GitHub 统一记录问题，方便搜索和跟进；已在其他渠道反馈时，请附上链接，避免重复排查。
 
