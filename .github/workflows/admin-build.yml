@@ -1,0 +1,51 @@
+name: Admin build
+
+on:
+  pull_request:
+    paths:
+      - "frontend/admin/**"
+      - ".github/workflows/admin-build.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "frontend/admin/**"
+      - ".github/workflows/admin-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Production build (Node 22.22.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend/admin
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.0"
+          cache: npm
+          cache-dependency-path: frontend/admin/package-lock.json
+
+      - name: Use locked npm version
+        run: npm install --global npm@10.9.4
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build admin
+        run: npm run build

@@ -12,6 +12,8 @@ Self-hosted AI video and comic production: script writing, storyboarding, image/
   <img src="https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MySQL-5.7-4479A1.svg" alt="MySQL">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5-red.svg" alt="MyBatis-Plus">
+  <a href="https://github.com/gzxx-2025/aid-server/actions/workflows/backend-build.yml"><img src="https://github.com/gzxx-2025/aid-server/actions/workflows/backend-build.yml/badge.svg?branch=main" alt="Backend build"></a>
+  <a href="https://github.com/gzxx-2025/aid-server/actions/workflows/admin-build.yml"><img src="https://github.com/gzxx-2025/aid-server/actions/workflows/admin-build.yml/badge.svg?branch=main" alt="Admin build"></a>
 </p>
 
 <p align="center">
