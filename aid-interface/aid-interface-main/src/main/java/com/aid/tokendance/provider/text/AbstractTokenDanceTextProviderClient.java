@@ -1,7 +1,5 @@
 package com.aid.tokendance.provider.text;
 
-import com.aid.common.error.TaskErrorResult;
-import com.aid.common.error.TaskErrorSnapshot;
 import com.aid.common.exception.ServiceException;
 import com.aid.domain.vo.AiModelConfigVo;
 import com.aid.media.dto.MediaTextGenerateRequest;
@@ -9,10 +7,13 @@ import com.aid.media.provider.ProviderSubmitResult;
 import com.aid.media.provider.ProviderTaskResult;
 import com.aid.media.provider.ReasoningContentSanitizer;
 import com.aid.media.provider.TextOutputLimitResolver;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import com.aid.media.provider.TextProviderClient;
 import com.aid.media.provider.TextStreamCallbacks;
 import com.aid.tokendance.provider.common.TokenDanceHttpResponse;
+import com.aid.tokendance.provider.common.TokenDanceEndpoints;
 import com.aid.tokendance.provider.common.TokenDancePayloadSupport;
+import com.aid.tokendance.provider.common.TokenDanceProtocols;
 import com.aid.tokendance.provider.common.TokenDanceResponseMapper;
 import com.aid.tokendance.provider.common.TokenDanceTransport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,9 +60,27 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
     }
 
     @Override
+    public final void validateProviderConfiguration(AiModelConfigVo modelConfig,
+            MediaTextGenerateRequest request)
+    {
+        try
+        {
+            TokenDancePayloadSupport.requireModel(modelConfig, Collections.singleton(protocol));
+            transport.validateConfiguration(modelConfig,
+                    TokenDanceEndpoints.submitPath(modelConfig, endpoint), protocolHeaders());
+        }
+        catch (RuntimeException error)
+        {
+            throw TextFailureBillingPolicy.notSent(
+                    error.getMessage() == null ? "模型配置不完整" : error.getMessage());
+        }
+    }
+
+    @Override
     public final void streamChat(AiModelConfigVo modelConfig, MediaTextGenerateRequest request,
             TextStreamCallbacks callbacks) throws IOException
     {
+        validateProviderConfiguration(modelConfig, request);
         requireRequest(modelConfig, request);
         TextOutputLimitResolver.normalize(request, modelConfig);
         validateRequest(modelConfig, request);
@@ -84,25 +103,28 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
                                 frame.append(line.substring(5).stripLeading());
                                 if (frame.length() > 1_000_000) throw new ServiceException("文本事件过大");
                             } else if (line.isEmpty() && !frame.isEmpty()) {
-                                boolean stop = state.accept(frame.toString(), recoveryAction);
+                                boolean stop = state.accept(frame.toString(), recoveryAction, status);
                                 frame.setLength(0);
                                 if (stop) break;
                             }
                         }
-                        if (!frame.isEmpty()) state.accept(frame.toString(), recoveryAction);
+                        if (!frame.isEmpty()) state.accept(frame.toString(), recoveryAction, status);
                         terminalError.set(state.failed);
                     }
                 });
         if (terminalError.get()) return;
         if (!response.isSuccessful())
         {
-            String snapshot = TokenDanceResponseMapper.recoverySnapshot(
-                    protocol, TokenDanceResponseMapper.auditBody(response));
-            TaskErrorResult recovery = TaskErrorSnapshot.read(snapshot);
-            ServiceException cause = recovery == null ? null
-                    : new ServiceException(recovery.getUserMessage())
-                            .setTaskErrorJson(snapshot);
-            callbacks.onError(TokenDanceResponseMapper.errorMessage(response, "上游请求失败"), cause);
+            String audit = TokenDanceResponseMapper.auditBody(response);
+            JsonNode root = TokenDanceResponseMapper.readTree(response.bodyUtf8());
+            Map<String, Object> usage = TokenDanceResponseMapper.usage(root);
+            if (usage != null) callbacks.onUsage(usage);
+            String message = TokenDanceResponseMapper.errorMessage(response, "上游请求失败");
+            String snapshot = TextFailureBillingPolicy.httpFailureSnapshot(
+                    response.getStatusCode(), message, usage,
+                    TokenDanceResponseMapper.recoverySnapshot(protocol, audit));
+            callbacks.onError(message, new ServiceException(message, response.getStatusCode())
+                    .setTaskErrorJson(snapshot));
             return;
         }
         if (!state.completed) {
@@ -127,6 +149,7 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
     public final ProviderSubmitResult chatSync(AiModelConfigVo modelConfig,
             MediaTextGenerateRequest request)
     {
+        validateProviderConfiguration(modelConfig, request);
         requireRequest(modelConfig, request);
         TextOutputLimitResolver.normalize(request, modelConfig);
         validateRequest(modelConfig, request);
@@ -140,7 +163,13 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
             if (!response.isSuccessful() || root == null || isErrorEvent(root)
                     || "failed".equals(root.path("status").asText()) || "incomplete".equals(root.path("status").asText()))
             {
-                return ProviderSubmitResult.builder().rawResponse(audit).usage(TokenDanceResponseMapper.usage(root)).build();
+                Map<String, Object> usage = TokenDanceResponseMapper.usage(root);
+                String message = TokenDanceResponseMapper.errorMessage(response, "上游请求失败");
+                String snapshot = TextFailureBillingPolicy.httpFailureSnapshot(
+                        response.getStatusCode(), message, usage,
+                        TokenDanceResponseMapper.recoverySnapshot(protocol, audit));
+                return ProviderSubmitResult.builder().rawResponse(audit)
+                        .errorDetailJson(snapshot).usage(usage).build();
             }
             if (incompleteOutput(root)) return ProviderSubmitResult.builder()
                     .rawResponse("文本响应未完成").usage(TokenDanceResponseMapper.usage(root)).build();
@@ -186,7 +215,11 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
 
     private void requireRequest(AiModelConfigVo modelConfig, MediaTextGenerateRequest request)
     {
-        TokenDancePayloadSupport.requireModel(modelConfig, Collections.singleton(protocol));
+        if (modelConfig == null || !TokenDanceProtocols.isTokenDance(modelConfig.getProviderCode())
+                || !TokenDanceProtocols.matches(protocol, modelConfig.getProtocol()))
+        {
+            throw new ServiceException("模型配置错误");
+        }
         if (request == null)
         {
             throw new IllegalArgumentException("文本请求不能为空");
@@ -206,7 +239,7 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
             this.toolTurn = toolTurn;
             this.tools = toolTurn ? new TokenDanceToolMessages.Accumulator(protocol) : null;
         }
-        private boolean accept(String data, String recoveryAction) {
+        private boolean accept(String data, String recoveryAction, int httpStatus) {
             callbacks.onSseDataLine(ReasoningContentSanitizer.sanitizeJson(data));
             if ("[DONE]".equals(data)) {
                 if (com.aid.tokendance.provider.common.TokenDanceProtocols.OPENAI_CHAT_COMPLETIONS.equals(protocol)) completed = true;
@@ -218,11 +251,15 @@ abstract class AbstractTokenDanceTextProviderClient implements TextProviderClien
                 Map<String, Object> usage = TokenDanceResponseMapper.usage(event);
                 if (usage != null) callbacks.onUsage(usage);
                 failed = true;
-                TokenDanceHttpResponse error = new TokenDanceHttpResponse(502, "application/json",
-                        data.getBytes(StandardCharsets.UTF_8), recoveryAction);
-                String snapshot = TokenDanceResponseMapper.recoverySnapshot(protocol, TokenDanceResponseMapper.auditBody(error));
+                TokenDanceHttpResponse error = new TokenDanceHttpResponse(httpStatus, "application/json",
+                         data.getBytes(StandardCharsets.UTF_8), recoveryAction);
+                String recoverySnapshot = TokenDanceResponseMapper.recoverySnapshot(
+                        protocol, TokenDanceResponseMapper.auditBody(error));
                 String message = TokenDanceResponseMapper.errorMessage(error, "上游请求失败");
-                callbacks.onError(message, new ServiceException(message).setTaskErrorJson(snapshot));
+                String snapshot = TextFailureBillingPolicy.httpFailureSnapshot(
+                        httpStatus, message, usage, recoverySnapshot);
+                callbacks.onError(message, new ServiceException(message, httpStatus)
+                        .setTaskErrorJson(snapshot));
                 return true;
             }
             acceptStreamEvent(event, callbacks);

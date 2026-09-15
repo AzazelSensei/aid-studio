@@ -4,7 +4,7 @@ import { useEffect,useRef,useState } from 'react'
 import { parseServerStoryboardId } from '~/composables/useStoryboardWorkbenchMutations'
 import { useCreationStore } from '~/stores/creation'
 import type { DubbingPanel,StoryboardPanel,StoryboardVideoPanel } from '~/types'
-import { requestCreateFlowStepModal } from '~/utils/createFlowStepModalIntent'
+import { requestStoryboardImageStepModal } from '~/utils/createFlowStepModalIntent'
 import { stripStoryboardScriptSkeletonPanels } from '~/utils/storyboardPanelMap'
 import {
 extractStoryboardTitleSuffix,
@@ -299,8 +299,8 @@ export function useCreateFlowStoryboardSync() {
   const [storyboardScriptTooltipKey, setStoryboardScriptTooltipKey] = useState(0)
 
   function handleJumpToStoryboardScriptFromVideo(panelIndex: number) {
-    // 跨步骤开窗：视频页 → 分镜设计并打开「编辑分镜图」（可整段卸载 createFlowStepModalIntent）
-    requestCreateFlowStepModal('storyboard-image', panelIndex)
+    const creationMode = useCreationStore.getState().formData.globalSetting?.creationMode
+    requestStoryboardImageStepModal(creationMode, panelIndex)
   }
 
   function clearStoryboardScriptJumpTooltip() {

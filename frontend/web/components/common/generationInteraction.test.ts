@@ -36,4 +36,26 @@ describe('generation interaction contracts', () => {
     const source = readWorkspaceFile('components/common/EllipsisTooltip.tsx')
     expect(source).toContain('zIndex={ELLIPSIS_TOOLTIP_Z_INDEX}')
   })
+
+  it('keeps submit-area billing mutually exclusive in image edit modals', () => {
+    const shared = readWorkspaceFile('components/common/SubmitAreaBilling.tsx')
+    expect(shared).toContain('resolveSubmitAreaBillingView')
+    expect(shared).toContain('showMore={false}')
+
+    for (const path of [
+      'components/steps/EditSceneImageModal.tsx',
+      'components/steps/edit-storyboard-image/EditStoryboardImageModal.tsx'
+    ]) {
+      const source = readWorkspaceFile(path)
+      expect(source, path).toContain('<SubmitAreaBilling')
+      expect(source, path).not.toContain('billing-quote-rule-preview')
+    }
+  })
+
+  it('does not stack rule preview with quote hint in the storyboard video modal', () => {
+    const source = readWorkspaceFile('components/steps/edit-storyboard-video/VideoConfigPanel.tsx')
+    expect(source).toContain('<BillingQuoteHint')
+    expect(source).not.toContain('billing-quote-rule-preview')
+    expect(source).not.toContain('ModelBillingRules')
+  })
 })

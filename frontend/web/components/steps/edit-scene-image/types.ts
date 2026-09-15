@@ -216,6 +216,9 @@ export interface EditSceneImageModalBaseCtx {
   currentImg: () => any | null
   /** 选图后以该图片保存的业务提示词和历史参考图初始化对话作图。 */
   applyCurrentFormImageEditPrefill: () => void
+  /** 生图过程中锁定对话作图输入，避免刷新/聚焦新图把修改要求清空。 */
+  preserveDialogueComposer: { current: boolean }
+  releaseDialogueComposerPreserve: () => void
   switchScene: (index: number) => void
   switchImage: (index: number) => Promise<void>
   /** 角色主资产编辑或「角色下的形态」编辑：设定卡接口仅角色 */

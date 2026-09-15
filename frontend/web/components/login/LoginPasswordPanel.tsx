@@ -1,5 +1,6 @@
 'use client'
 
+import { LoadingOutlined } from '@ant-design/icons'
 import { LoginAgreementHint } from './LoginAgreementHint'
 import { LoginModalField } from './LoginModalField'
 import {
@@ -76,8 +77,20 @@ export function LoginPasswordPanel({
           忘记密码？
         </button>
       </div>
-      <button type="submit" disabled={loading} className={LOGIN_MODAL_SUBMIT_CLASS}>
-        登录
+      <button
+        type="submit"
+        disabled={loading}
+        aria-busy={loading}
+        className={LOGIN_MODAL_SUBMIT_CLASS}
+      >
+        {loading ? (
+          <span className="inline-flex items-center gap-2" role="status">
+            <LoadingOutlined spin />
+            登录中...
+          </span>
+        ) : (
+          '登录'
+        )}
       </button>
       <LoginAgreementHint termsOfServiceUrl={termsOfServiceUrl} privacyPolicyUrl={privacyPolicyUrl} />
     </form>

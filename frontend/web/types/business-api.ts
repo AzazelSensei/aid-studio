@@ -82,7 +82,15 @@ export interface LoginData {
 export interface SendCodeRequest {
   target?: string
   codeType: 'sms' | 'email'
-  scene: 'login' | 'bind' | 'unbind' | 'reset'
+  scene:
+    | 'login'
+    | 'bind'
+    | 'unbind'
+    | 'reset'
+    | 'set_password'
+    | 'rebind_old'
+    | 'rebind_new'
+    | 'cancel'
   /** 邀请码（登录场景可选）；有则透传，空串不传 */
   inviteCode?: string
 }
@@ -282,6 +290,93 @@ export interface WechatLoginCheckData extends Partial<LoginData> {
 }
 
 export type WechatLoginSuccessData = LoginData & { status: 'SUCCESS' }
+
+/** POST /api/user/account/security */
+export interface AccountSecurityData {
+  passwordSet: boolean
+  phoneBound: boolean
+  maskedPhone?: string
+  emailBound: boolean
+  maskedEmail?: string
+  wechatBound: boolean
+  loginMethods: Array<'sms' | 'email' | 'password' | 'wechat' | string>
+  canUnbindPhone: boolean
+  canUnbindEmail: boolean
+  canUnbindWechat: boolean
+  smsAvailable: boolean
+  emailAvailable: boolean
+  wechatAvailable: boolean
+  reRegistrationRestrictionEnabled: boolean
+  reRegistrationRestrictionDays: number
+  passwordPolicy: { minLength: number; maxLength: number }
+}
+
+export type AccountCodeChannel = 'sms' | 'email'
+
+export interface AccountPasswordSetRequest {
+  verifyType: AccountCodeChannel
+  code: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface AccountPasswordChangeRequest {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface AccountBindRequest {
+  bindType: AccountCodeChannel
+  target: string
+  code: string
+}
+
+export interface AccountUnbindRequest {
+  unbindType: AccountCodeChannel | 'wechat'
+  code: string
+}
+
+export interface AccountRebindRequest {
+  bindType: AccountCodeChannel
+  newTarget: string
+  oldCode: string
+  newCode: string
+}
+
+export interface AccountCancelRequest {
+  verifyType: AccountCodeChannel
+  code: string
+}
+
+export interface AccountLoginHistoryRequest {
+  pageNum: number
+  pageSize: number
+}
+
+export interface AccountLoginHistoryItem {
+  id: number
+  status: string
+  ipaddr?: string
+  loginLocation?: string
+  browser?: string
+  os?: string
+  message?: string
+  loginTime?: string
+}
+
+export interface AccountLoginHistoryData {
+  total: number
+  pageNum: number
+  pageSize: number
+  list: AccountLoginHistoryItem[]
+}
+
+/** /auth/wechat/bind/check */
+export interface WechatBindCheckData {
+  status: WechatLoginStatus
+  expireSeconds?: number
+}
 
 /** /realAuth/verify */
 export interface RealAuthVerifyRequest {

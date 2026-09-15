@@ -10,6 +10,18 @@ import java.util.Map;
 /** TokenDance 生成网关传输层；Portal API 不能通过本接口调用。 */
 public interface TokenDanceTransport
 {
+    /**
+     * Validate all local transport configuration that can fail before a request is written.
+     * Implementations should keep this method side-effect free so callers can run it before
+     * freezing funds or marking a provider call as started.
+     */
+    default void validateConfiguration(AiModelConfigVo config, String relativePath,
+            Map<String, String> protocolHeaders)
+    {
+        // Compatibility default for custom/test transports. The production transport performs
+        // the full endpoint, timeout and header validation.
+    }
+
     default TokenDanceHttpResponse exchange(String method, AiModelConfigVo config,
             String relativePath, String body) throws IOException
     {

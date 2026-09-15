@@ -452,6 +452,7 @@ export function StoryboardScript({
   }
 
   function openStoryboardImage(index: number) {
+    if (isProMode) return
     // 原 editStoryboardImageModalLoader.preload()：React 侧弹窗为静态 import，无需预热
     clearModalImageGenUserDismissed()
     setCurrentPanelIndex(index)
@@ -479,7 +480,7 @@ export function StoryboardScript({
     if (!pending || pending.kind !== 'storyboard-image') return
     if (pending.panelIndex < 0 || pending.panelIndex >= panelsRef.current.length) return
     const index = consumeCreateFlowStepModalIntent('storyboard-image')
-    if (index == null) return
+    if (index == null || isProMode) return
     setViewMode('list')
     setTimeout(() => {
       if (gen.pageDisposedRef.current) return

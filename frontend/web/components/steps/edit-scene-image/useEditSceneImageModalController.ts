@@ -7,6 +7,7 @@ import { useCreationStore } from '~/stores/creation'
 import type { AssetExtractType } from '~/types/business-api'
 import { createFormImageTaskClaimOwner } from '~/utils/formImageAutoUse'
 import { resolveFormImageEditPrefill } from '~/utils/formImageEditPrefill'
+import { plainPromptTextToEditorHtml } from '~/utils/storyboardPromptAssetRef'
 import { createModalTabSkeletonController } from '~/utils/modalTabSseMutex'
 import { openImagePreviewModal } from '~/utils/openImagePreviewModal'
 import { isSettingCardBaseImage } from '~/utils/settingCardBaseImage'
@@ -94,6 +95,7 @@ export function useEditSceneImageModalController(
   const dialogueSourceImages = useMirrored<DialogueSourceImage[]>([])
   const dialogueInstructionHtml = useMirrored('')
   const showDialogueImportModal = useMirrored(false)
+  const preserveDialogueComposer = useRef(false)
 
   // 本地场景图片列表（包含待添加的图片）
   const localSceneImages = useMirrored<any[]>([])
@@ -228,8 +230,12 @@ export function useEditSceneImageModalController(
   /** 选图后以该图片保存的业务提示词和历史参考图初始化对话作图。 */
   function applyCurrentFormImageEditPrefill() {
     const prefill = resolveFormImageEditPrefill(currentImg())
-    dialogueInstructionHtml.set(prefill.promptText)
+    dialogueInstructionHtml.set(plainPromptTextToEditorHtml(prefill.promptText))
     dialogueSourceImages.set(prefill.sourceImages.map((item) => ({ ...item })))
+  }
+
+  function releaseDialogueComposerPreserve() {
+    preserveDialogueComposer.current = false
   }
 
   /** 中间画布标题：与外层列表 `img.title` 同源 */
@@ -266,6 +272,7 @@ export function useEditSceneImageModalController(
   // 切换场景
   const switchScene = (index: number) => {
     if (index === currentSceneIndex.get()) return
+    releaseDialogueComposerPreserve()
 
     const nextEditorScopeKey = buildEditorScopeKeyForSceneIndex(index)
     ctx.suspendSceneModalFollowsExceptEditorScope(nextEditorScopeKey)
@@ -282,6 +289,7 @@ export function useEditSceneImageModalController(
   // 切换图片
   const switchImage = async (index: number) => {
     if (index === currentImageIndex.get()) return
+    releaseDialogueComposerPreserve()
     currentImageIndex.set(index)
 
     // 滚动到对应图片，确保图片滚动到顶部
@@ -371,6 +379,8 @@ export function useEditSceneImageModalController(
     currentSceneImages,
     currentImg,
     applyCurrentFormImageEditPrefill,
+    preserveDialogueComposer,
+    releaseDialogueComposerPreserve,
     switchScene,
     switchImage,
     showToolbarSettingCard,

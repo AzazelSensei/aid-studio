@@ -15,6 +15,7 @@ import { useHomeShellCreateModal } from '~/composables/useHomeShellCreateModal'
 import { useHomeSidebarExtraNav } from '~/composables/useHomeSidebarExtraNav'
 import { useUserStore } from '~/stores/user'
 import { logoutToPublicHome, requireLogin } from '~/utils/authLoginNavigation'
+import { openAccountSettings } from '~/stores/accountSettings'
 import './HomeNewShell.css'
 
 /**
@@ -107,6 +108,11 @@ export function HomeNewShell({ children }: { children: ReactNode }) {
   function openBilling() {
     closeUserMenu()
     router.push('/billing')
+  }
+
+  function openAccountSettingsFromMenu() {
+    closeUserMenu()
+    openAccountSettings()
   }
 
   function openRechargeFromMenu() {
@@ -276,6 +282,7 @@ export function HomeNewShell({ children }: { children: ReactNode }) {
         onFaq={openFaq}
         onBilling={openBilling}
         onRecharge={openRechargeFromMenu}
+        onAccountSettings={openAccountSettingsFromMenu}
         onLogout={handleLogout}
       />
     </div>

@@ -8,7 +8,7 @@ matchesCreationLiveGenScope
 import { formatCreationImageProgressText,runEditImageTask } from '~/composables/useEditImageTask'
 import { userAssetRpsFormImageSceneSplit } from '~/utils/businessApi'
 import { resolveDialogueToolbarSourceImages } from '~/utils/formImageEditPrefill'
-import { htmlToPlainText } from '~/utils/htmlPlain'
+import { storyboardPromptHtmlToPlain } from '~/utils/storyboardPromptAssetRef'
 import { shouldApplyModalTaskProgressToCanvas } from '~/utils/liveGenScopeIsolation'
 import { createSceneModalCanvasGenerateActions } from './sceneModalCanvasGenerateActions'
 import {
@@ -31,7 +31,7 @@ export function useSceneModalGenerate(ctx: EditSceneImageModalCtx): SceneModalGe
   /** 「对话作图」Tab：genMode=chat，参考图 0~N 张（0 张为纯文生图） */
   const handleStartDialogueGenerate = async () => {
     if (ctx.showGenerateFooterButtonLoading()) return
-    const instructionText = htmlToPlainText(ctx.dialogueInstructionHtml.get() || '').trim()
+    const instructionText = storyboardPromptHtmlToPlain(ctx.dialogueInstructionHtml.get() || '').trim()
     if (!instructionText) {
       message.warning('请输入修改要求')
       return
@@ -54,6 +54,8 @@ export function useSceneModalGenerate(ctx: EditSceneImageModalCtx): SceneModalGe
       message.warning('请先选择生图模型')
       return
     }
+
+    ctx.preserveDialogueComposer.current = true
 
     const sceneIdx = ctx.currentSceneIndex.get()
     const modalScope = ctx.captureModalScopeSnapshot(sceneIdx)
@@ -252,6 +254,7 @@ export function useSceneModalGenerate(ctx: EditSceneImageModalCtx): SceneModalGe
 
   /** 场景 / 道具 / 形态(form) 等：保存参考图优先，否则沿用当前图单图兜底。 */
   function handleDialogueImage(index: number) {
+    ctx.releaseDialogueComposerPreserve()
     ctx.currentImageIndex.set(index)
     ctx.applyCurrentFormImageEditPrefill()
     const hasSavedReferences = ctx.dialogueSourceImages.get().length > 0

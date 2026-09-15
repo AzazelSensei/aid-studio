@@ -32,8 +32,7 @@ import { HorizontalScrollTabBar } from '~/components/common/HorizontalScrollTabB
 import { ShimmerImage } from '~/components/common/ShimmerImage'
 import { HistoryRecordWrap } from '~/components/common/HistoryRecordWrap'
 import { EllipsisTooltip } from '~/components/common/EllipsisTooltip'
-import { BillingQuoteHint } from '~/components/common/BillingQuoteHint'
-import { ModelBillingRules } from '~/components/common/ModelBillingRules'
+import { SubmitAreaBilling } from '~/components/common/SubmitAreaBilling'
 import { useBillingQuote } from '~/hooks/useBillingQuote'
 import { ImportScriptModal } from '~/components/steps/ImportScriptModal'
 import { DialogueDrawPanel } from '~/components/steps/DialogueDrawPanel'
@@ -47,7 +46,7 @@ import { SelectAssetImageModal } from '~/components/steps/SelectAssetImageModal'
 import { MultiAngleCameraModal } from '~/components/steps/MultiAngleCameraModal'
 import { TouchEditModal } from '~/components/steps/TouchEditModal'
 import { assetUrl } from '~/utils/assetUrl'
-import { htmlToPlainText } from '~/utils/htmlPlain'
+import { storyboardPromptHtmlToPlain } from '~/utils/storyboardPromptAssetRef'
 import type { BillingQuoteRequest } from '~/types/business-api'
 import {
   resolveStoryboardPromptAgentCode,
@@ -160,7 +159,7 @@ export function EditStoryboardImageModal(props: EditStoryboardImageModalProps) {
       }
     }
     const referenceImage = String(ctx.dialogueSourceImages.value[0]?.url || '').trim()
-    const prompt = htmlToPlainText(ctx.dialogueInstructionHtml.value || '').trim()
+    const prompt = storyboardPromptHtmlToPlain(ctx.dialogueInstructionHtml.value || '').trim()
     const modelCode = selectedDialogueModelCode
     if (!modelCode) return null
     const settings = ctx.dialogueSettings.value
@@ -747,19 +746,14 @@ export function EditStoryboardImageModal(props: EditStoryboardImageModalProps) {
                     </div>
                     {leftActiveTab === 'generate' ? (
                       <div className="storyboard-config-footer">
-                        {quoteModel?.billing && (!quoteRequest || generationQuote.error) ? (
-                          <div className="billing-quote-rule-preview">
-                            <span className="billing-quote-rule-preview__label">当前价格档位</span>
-                            <ModelBillingRules billing={quoteModel.billing} maxRules={1} />
-                          </div>
-                        ) : null}
-                        <BillingQuoteHint
+                        <SubmitAreaBilling
+                          modelSelected={quoteModelSelected}
+                          billing={quoteModel?.billing}
+                          hasQuoteRequest={Boolean(quoteRequest)}
                           quote={generationQuote.quote}
                           loading={generationQuote.loading}
                           error={generationQuote.error}
-                          active={quoteModelSelected}
                           idleText={quoteIdleText}
-                          className="billing-quote-hint--submit"
                         />
                         <Button
                           type="primary"
@@ -779,19 +773,14 @@ export function EditStoryboardImageModal(props: EditStoryboardImageModalProps) {
                       </div>
                     ) : leftActiveTab === 'dialogue' ? (
                       <div className="storyboard-config-footer">
-                        {quoteModel?.billing && (!quoteRequest || generationQuote.error) ? (
-                          <div className="billing-quote-rule-preview">
-                            <span className="billing-quote-rule-preview__label">当前价格档位</span>
-                            <ModelBillingRules billing={quoteModel.billing} maxRules={1} />
-                          </div>
-                        ) : null}
-                        <BillingQuoteHint
+                        <SubmitAreaBilling
+                          modelSelected={quoteModelSelected}
+                          billing={quoteModel?.billing}
+                          hasQuoteRequest={Boolean(quoteRequest)}
                           quote={generationQuote.quote}
                           loading={generationQuote.loading}
                           error={generationQuote.error}
-                          active={quoteModelSelected}
                           idleText={quoteIdleText}
-                          className="billing-quote-hint--submit"
                         />
                         <Button
                           type="primary"

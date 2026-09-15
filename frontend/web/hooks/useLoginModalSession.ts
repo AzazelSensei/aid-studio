@@ -11,6 +11,7 @@ import { useUserStore } from '@/stores/user'
 import type { LoginData } from '~/types/business-api'
 import { setAuthLoginChannel, type AuthLoginChannel } from '~/utils/authLoginChannel'
 import { normalizeInviteCode, withLoginInviteCode } from '~/utils/authLoginInvite'
+import { waitForLoginMinimumLoading } from '~/utils/loginSubmitTiming'
 import {
   getCodeLoginPresentation,
   isValidCodeLoginTarget
@@ -22,7 +23,6 @@ import { mapLoginDataToUser } from '~/utils/userProfile'
 
 const LOGIN_SEND_CODE_COUNTDOWN_SCOPE = 'login-send-code'
 const LOGIN_CAPTCHA_EL = '#login-captcha-box'
-
 export function useLoginModalSession() {
   const router = useRouter()
   const tab = useLoginModalStore((s) => s.tab)
@@ -86,7 +86,10 @@ export function useLoginModalSession() {
   )
   completeLoginRef.current = completeLogin
 
-  const handleCodeLogin = useCallback(async () => {
+  const handleCodeLogin = useCallback(async (): Promise<{
+    data: LoginData
+    channel: AuthLoginChannel
+  }> => {
     const loginType = activeCodeLoginChannel
     if (!loginType) throw new Error('验证码登录未开启')
     if (!isValidCodeLoginTarget(account.trim(), loginType)) {
@@ -102,10 +105,10 @@ export function useLoginModalSession() {
         normalizeInviteCode(inviteCode)
       )
     )
-    completeLogin(data, loginType)
-  }, [account, activeCodeLoginChannel, code, completeLogin, inviteCode])
+    return { data, channel: loginType }
+  }, [account, activeCodeLoginChannel, code, inviteCode])
 
-  const handlePasswordLogin = useCallback(async () => {
+  const handlePasswordLogin = useCallback(async (): Promise<LoginData | null> => {
     const data = await authSend.withCaptchaToken((captchaToken) =>
       authLogin(
         {
@@ -116,16 +119,26 @@ export function useLoginModalSession() {
         captchaToken || undefined
       )
     )
-    if (data) completeLogin(data, 'password')
-  }, [account, authSend, completeLogin, password])
+    return data
+  }, [account, authSend, password])
 
   const handleSubmit = useCallback(async () => {
     if (loadingRef.current || authSend.isCaptchaOpening()) return
+    const startedAt = Date.now()
     loadingRef.current = true
     setLoading(true)
     try {
-      if (tab === 'code') await handleCodeLogin()
-      else if (tab === 'password') await handlePasswordLogin()
+      if (tab === 'code') {
+        const result = await handleCodeLogin()
+        await waitForLoginMinimumLoading(startedAt)
+        completeLogin(result.data, result.channel)
+      } else if (tab === 'password') {
+        const data = await handlePasswordLogin()
+        if (data) {
+          await waitForLoginMinimumLoading(startedAt)
+          completeLogin(data, 'password')
+        }
+      }
     } catch (e: unknown) {
       const err = e as { msg?: string; message?: string }
       message.error(err?.msg ?? err?.message ?? '登录失败')
@@ -133,7 +146,7 @@ export function useLoginModalSession() {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [authSend, handleCodeLogin, handlePasswordLogin, tab])
+  }, [authSend, completeLogin, handleCodeLogin, handlePasswordLogin, tab])
 
   useEffect(() => {
     void loadTacScriptFallback()

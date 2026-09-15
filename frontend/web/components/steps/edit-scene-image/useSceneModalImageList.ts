@@ -335,6 +335,7 @@ export function useSceneModalImageList(ctx: EditSceneImageModalCtx): SceneModalI
     items: Array<{ imageId: number; imageUrl: string }>,
     modalScope?: ModalScopeSnapshot
   ) {
+    ctx.preserveDialogueComposer.current = true
     if (modalScope && !ctx.isSameModalScope(modalScope)) return
     const focusImageId = items.length ? items[items.length - 1]?.imageId ?? null : null
     await refreshFormImageListAfterTask(focusImageId, {

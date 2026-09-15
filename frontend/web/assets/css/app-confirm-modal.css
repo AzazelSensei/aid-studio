@@ -41,7 +41,8 @@
 .home-confirm-modal .ant-modal-confirm-body,
 .recharge-confirm-modal .ant-modal-confirm-body {
   display: flex !important;
-  flex-wrap: wrap !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: flex-start !important;
 }
 
@@ -106,7 +107,7 @@
   color: #a8b4c4 !important;
 }
 
-/* 自定义图标与标题同一行（Ant Design 默认 flex 规则仅匹配 .anticon） */
+/* 自定义图标与标题同一行：Ant Design 6 把 title/content 包进 paragraph，默认 max-width 按 .anticon 计算 */
 .app-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon,
 .app-confirm-modal .ant-modal-confirm-body > .app-confirm-icon,
 .home-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon,
@@ -120,27 +121,23 @@ html.app-shell-create .ant-modal-confirm .ant-modal-confirm-body > .app-confirm-
   margin-top: 2px;
 }
 
-.app-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-.app-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-.home-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-.home-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-.recharge-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-.recharge-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title,
-html.app-shell-create .ant-modal-confirm .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title {
-  flex: 1 !important;
-  min-width: 0;
-}
-
-.app-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-.app-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-.home-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-.home-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-.recharge-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-.recharge-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content,
-html.app-shell-create .ant-modal-confirm .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-title + .ant-modal-confirm-content {
-  margin-inline-start: 36px;
-  flex-basis: 100%;
-  max-width: calc(100% - 36px);
+.app-confirm-wrap .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.app-confirm-modal .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.home-confirm-wrap .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.home-confirm-modal .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.recharge-confirm-wrap .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.recharge-confirm-modal .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+html.app-shell-create .ant-modal-confirm .ant-modal-confirm-body > .ant-modal-confirm-paragraph,
+.app-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+.app-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+.home-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+.home-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+.recharge-confirm-wrap .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+.recharge-confirm-modal .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph,
+html.app-shell-create .ant-modal-confirm .ant-modal-confirm-body > .app-confirm-icon + .ant-modal-confirm-paragraph {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 
 .app-confirm-wrap .ant-modal-confirm-btns .ant-btn,

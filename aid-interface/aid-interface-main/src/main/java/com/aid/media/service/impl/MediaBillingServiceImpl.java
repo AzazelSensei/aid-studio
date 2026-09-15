@@ -25,8 +25,8 @@ import com.aid.common.exception.ServiceException;
 import com.aid.domain.vo.AiModelConfigVo;
 import com.aid.media.enums.MediaBillingStatus;
 import com.aid.media.service.IMediaBillingService;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import com.aid.notify.wechat.service.IWechatNotifyService;
-import com.aid.tokendance.provider.common.TokenDanceResponseMapper;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
@@ -355,13 +355,13 @@ public class MediaBillingServiceImpl implements IMediaBillingService {
             try
             {
                 boolean result;
-                boolean textProviderStarted = "TEXT".equalsIgnoreCase(task.getMediaType())
-                        && task.getUpstreamAcceptTime() != null
-                        && !TokenDanceResponseMapper.isConfirmedRejection(
+                boolean textFailureBillable = "TEXT".equalsIgnoreCase(task.getMediaType())
+                        && TextFailureBillingPolicy.isBillableProviderCall(
+                                task.getUpstreamAcceptTime() != null,
                                 task.getProtocol(), task.getErrorDetailJson());
-                if ("SUCCEEDED".equals(task.getStatus()) || textProviderStarted)
+                if ("SUCCEEDED".equals(task.getStatus()) || textFailureBillable)
                 {
-                    if (textProviderStarted && "FAILED".equals(task.getStatus()))
+                    if (textFailureBillable && "FAILED".equals(task.getStatus()))
                     {
                         log.info("媒体FROZEN补偿检测到文本Provider边界，按预冻结上限保守结算: taskId={}",
                                 task.getId());

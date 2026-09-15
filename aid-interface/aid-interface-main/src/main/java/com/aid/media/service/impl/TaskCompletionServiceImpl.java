@@ -14,7 +14,7 @@ import com.aid.media.enums.MediaTaskStatus;
 import com.aid.media.event.MediaTaskCompletedEvent;
 import com.aid.media.event.MediaTaskOssPersistedEvent;
 import com.aid.media.provider.ProviderTaskResult;
-import com.aid.media.provider.ProviderUsageSupport;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import com.aid.media.service.MediaConcurrencyLimiter;
 import com.aid.media.service.MediaTaskArchiveService;
 import com.aid.media.service.TaskCompletionService;
@@ -160,7 +160,8 @@ public class TaskCompletionServiceImpl implements TaskCompletionService {
                 error = ErrorNormalizer.normalize(String.valueOf(taskId), null, task.getModelName(), -1,
                         StrUtil.blankToDefault(taskResult.getRawErrorMessage(), taskResult.getErrorMessage()));
             }
-            casWrapper.set(AidMediaTask::getErrorDetailJson, TaskErrorSnapshot.write(error));
+            casWrapper.set(AidMediaTask::getErrorDetailJson,
+                    TextFailureBillingPolicy.mergeErrorSnapshot(task.getErrorDetailJson(), error));
             casWrapper.set(AidMediaTask::getErrorMessage,
                 MediaTaskPayloadSanitizer.sanitizeForStorage(taskResult.getErrorMessage()));
         }
@@ -215,8 +216,9 @@ public class TaskCompletionServiceImpl implements TaskCompletionService {
             log.info("completeTask 任务成功, taskId={}, billingWon={}", taskId, billingWon);
         } else if (MediaType.TEXT.name().equals(task.getMediaType())
                 && task.getBillingStatus() != null
-                && (task.getUpstreamAcceptTime() != null
-                    || ProviderUsageSupport.hasAnyProviderUsage(settleUsage))) {
+                && TextFailureBillingPolicy.shouldSettle(false,
+                    task.getUpstreamAcceptTime() != null, task.getProtocol(),
+                    task.getErrorDetailJson(), settleUsage)) {
             // Provider 已受理/已开始调用后，即使失败且 usage 缺失也按预冻结上限保守结算。
             billingWon = billingFacadeService.settleBilling(
                 task, settleUsage);
@@ -448,8 +450,9 @@ public class TaskCompletionServiceImpl implements TaskCompletionService {
         casWrapper.eq(AidMediaTask::getStatus, currentStatus);
         casWrapper.set(AidMediaTask::getStatus, MediaTaskStatus.FAILED.name());
         casWrapper.set(AidMediaTask::getTerminalTime, new Date());
-        casWrapper.set(AidMediaTask::getErrorDetailJson, TaskErrorSnapshot.write(ErrorNormalizer.normalize(
-                String.valueOf(taskId), null, task.getModelName(), -1, errorMessage)));
+        casWrapper.set(AidMediaTask::getErrorDetailJson, TextFailureBillingPolicy.mergeErrorSnapshot(
+                task.getErrorDetailJson(), ErrorNormalizer.normalize(
+                        String.valueOf(taskId), null, task.getModelName(), -1, errorMessage)));
         casWrapper.set(AidMediaTask::getErrorMessage,
             MediaTaskPayloadSanitizer.sanitizeForStorage(errorMessage));
         MediaTaskArchiveService.PreparedTerminalPayload preparedPayload =
@@ -478,7 +481,10 @@ public class TaskCompletionServiceImpl implements TaskCompletionService {
             return true;
         }
         boolean settleProviderCall = MediaType.TEXT.name().equals(task.getMediaType())
-            && task.getBillingStatus() != null && task.getUpstreamAcceptTime() != null;
+            && task.getBillingStatus() != null
+            && TextFailureBillingPolicy.shouldSettle(false,
+                task.getUpstreamAcceptTime() != null, task.getProtocol(),
+                task.getErrorDetailJson(), Map.of());
         boolean billingWon = settleProviderCall
             ? billingFacadeService.settleBilling(task, Map.of())
             : billingFacadeService.refundBilling(task);

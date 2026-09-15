@@ -4,6 +4,7 @@ import {
 DollarCircleOutlined,
 LogoutOutlined,
 QuestionCircleOutlined,
+SettingOutlined,
 WalletOutlined
 } from '@ant-design/icons'
 import { Switch,Tooltip,message } from 'antd'
@@ -36,6 +37,7 @@ interface UserMenuDropdownProps {
   onFaq?: () => void
   onBilling?: () => void
   onRecharge?: () => void
+  onAccountSettings?: () => void
   onLogout?: () => void
 }
 
@@ -50,7 +52,7 @@ function nextFrame(cb: () => void) {
 
 const UserMenuDropdown = forwardRef<FloatingPanelHandle, UserMenuDropdownProps>(
   function UserMenuDropdown(
-    { open, floatingStyle = {}, onFaq, onBilling, onRecharge, onLogout },
+    { open, floatingStyle = {}, onFaq, onBilling, onRecharge, onAccountSettings, onLogout },
     ref
   ) {
     const user = useUserStore((s) => s.user)
@@ -205,6 +207,15 @@ const UserMenuDropdown = forwardRef<FloatingPanelHandle, UserMenuDropdownProps>(
           </div>
         ) : null}
         <div className="user-menu-dropdown__list">
+          <button
+            type="button"
+            className="user-menu-dropdown__item"
+            role="menuitem"
+            onClick={() => onAccountSettings?.()}
+          >
+            <SettingOutlined />
+            <span>账号设置</span>
+          </button>
           {/* payment.alipay/wxpay 皆关时隐藏充值入口（/auth/public-config） */}
           {anyPaymentEnabled ? (
             <button

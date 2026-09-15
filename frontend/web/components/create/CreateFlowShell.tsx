@@ -123,6 +123,7 @@ export function CreateFlowShell({ children }: { children: ReactNode }) {
     toggleUserMenu,
     openFaq,
     openBilling,
+    openAccountSettingsFromMenu,
     openRechargeFromMenu,
     handleLogout,
     handleDocumentClick,
@@ -820,6 +821,7 @@ export function CreateFlowShell({ children }: { children: ReactNode }) {
             onFaq: openFaq,
             onBilling: openBilling,
             onRecharge: openRechargeFromMenu,
+            onAccountSettings: openAccountSettingsFromMenu,
             onLogout: handleLogout
           }}
           publishModal={{

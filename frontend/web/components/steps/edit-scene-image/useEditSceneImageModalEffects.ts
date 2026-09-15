@@ -12,9 +12,11 @@ releaseStep3SseSlot,
 requeueStep3SseItemToEnd,
 tryAcquireStep3SseSlot
 } from '~/utils/step3SseConcurrencyGate'
+import { resolveFormImageEditPrefill, shouldApplyFormImageDialoguePrefill } from '~/utils/formImageEditPrefill'
+import { storyboardPromptHtmlToPlain } from '~/utils/storyboardPromptAssetRef'
 import type {
-EditSceneImageModalCtx,
-ResolvedEditSceneImageModalProps
+  EditSceneImageModalCtx,
+  ResolvedEditSceneImageModalProps
 } from './types'
 
 const GLOBAL_TASKS_UPDATED_EVENT = 'create-flow-global-tasks-updated'
@@ -33,6 +35,8 @@ export function useEditSceneImageModalEffects(
     currentImageIndex,
     currentImg,
     applyCurrentFormImageEditPrefill,
+    dialogueInstructionHtml,
+    preserveDialogueComposer,
     switchScene,
     switchImage,
     currentSceneImages,
@@ -69,8 +73,33 @@ useEffect(() => {
 // 原 watch([open, csi, cii, currentImg 关键字段], { immediate: true })：选图后初始化对话作图
 const prefillImg = currentImg()
 const prefillRefsFingerprint = JSON.stringify(prefillImg?.referenceImages ?? [])
+const lastDialoguePrefillSelectionRef = useRef({ sceneIndex: Number.NaN, imageIndex: Number.NaN })
+const lastDialoguePrefillOpenRef = useRef(false)
 useEffect(() => {
-  if (propsRef.current.open) applyCurrentFormImageEditPrefill()
+  const isOpen = propsRef.current.open
+  const modalJustOpened = isOpen && !lastDialoguePrefillOpenRef.current
+  lastDialoguePrefillOpenRef.current = isOpen
+  const selectionChanged =
+    lastDialoguePrefillSelectionRef.current.sceneIndex !== currentSceneIndex.value ||
+    lastDialoguePrefillSelectionRef.current.imageIndex !== currentImageIndex.value
+  lastDialoguePrefillSelectionRef.current = {
+    sceneIndex: currentSceneIndex.value,
+    imageIndex: currentImageIndex.value
+  }
+  const incomingPromptText = resolveFormImageEditPrefill(prefillImg).promptText
+  if (
+    !shouldApplyFormImageDialoguePrefill({
+      modalOpen: isOpen,
+      preserveComposer: preserveDialogueComposer.current,
+      selectionChanged,
+      modalJustOpened,
+      currentInstructionPlain: storyboardPromptHtmlToPlain(dialogueInstructionHtml.get() || ''),
+      incomingPromptText
+    })
+  ) {
+    return
+  }
+  applyCurrentFormImageEditPrefill()
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [
   props.open,
@@ -155,6 +184,7 @@ useEffect(() => {
     addedImageIds.set(new Set())
     pendingImage.current = null
     lockLocalSceneImagesFromRps.current = false
+    preserveDialogueComposer.current = false
   } else {
     // 每次打开给予新的续跟预算，避免上一轮 stop 次数残留
     ctx.resetSceneModalDeferredRestoreState()

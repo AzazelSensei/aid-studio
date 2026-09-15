@@ -1619,10 +1619,10 @@ public class StoryboardImageGenerationServiceImpl implements IStoryboardImageGen
                 return false;
             }
             int total = task.getTotalCount() == null ? 0 : task.getTotalCount();
-            List<Long> storyboardIds = fanInSupport.parseStoryboardIds(task.getInputSnapshot());
+            List<Long> storyboardIds = fanInSupport.parseBatchStoryboardIds(task.getInputSnapshot());
             if (total > 0 && CollectionUtil.isEmpty(storyboardIds))
             {
-                log.error("分镜批量出图取消收尾缺少storyboardIds: taskId={}", taskId);
+                log.error("分镜批量出图取消收尾缺少批次镜头范围: taskId={}", taskId);
                 return false;
             }
             List<AidGenRecord> succ = loadSucceededRecordsByParentTask(taskId, storyboardIds);
@@ -2744,7 +2744,7 @@ public class StoryboardImageGenerationServiceImpl implements IStoryboardImageGen
             return; // 非 PROCESSING（已终态/取消）不收尾
         }
         int total = task.getTotalCount() == null ? 0 : task.getTotalCount();
-        List<Long> storyboardIds = fanInSupport.parseStoryboardIds(task.getInputSnapshot());
+        List<Long> storyboardIds = fanInSupport.parseBatchStoryboardIds(task.getInputSnapshot());
         List<AidGenRecord> succ = loadSucceededRecordsByParentTask(taskId, storyboardIds);
         int successCount = succ.size();
         int failCount = fanInSupport.getFailCount(taskId);

@@ -2,6 +2,7 @@ package com.aid.rps.queue;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -608,24 +609,41 @@ public class MediaGenFanInSupport
         catch (Exception ignore) { /* ignore */ }
     }
 
-    /** 从父任务 input_snapshot 解析 storyboardIds。 */
-    public List<Long> parseStoryboardIds(String inputSnapshot)
+    /**
+     * 解析父任务收尾统计使用的完整镜头范围。
+     * 续生会把 storyboardIds 改成本轮补跑项，但 allShots 始终保留原批次全集；
+     * 老任务没有 allShots 时再回退 storyboardIds。
+     */
+    public List<Long> parseBatchStoryboardIds(String inputSnapshot)
     {
-        List<Long> ids = new ArrayList<>();
-        if (StrUtil.isBlank(inputSnapshot)) { return ids; }
+        Set<Long> ids = new LinkedHashSet<>();
+        if (StrUtil.isBlank(inputSnapshot)) { return new ArrayList<>(); }
         try
         {
-            JsonNode arr = OBJECT_MAPPER.readTree(inputSnapshot).path("storyboardIds");
-            if (arr.isArray())
+            JsonNode snapshot = OBJECT_MAPPER.readTree(inputSnapshot);
+            appendStoryboardIds(snapshot.path("allShots"), ids);
+            if (ids.isEmpty())
             {
-                for (JsonNode n : arr) { if (n.canConvertToLong()) { ids.add(n.asLong()); } }
+                appendStoryboardIds(snapshot.path("storyboardIds"), ids);
             }
         }
         catch (Exception e)
         {
-            log.warn("媒体扇入解析 storyboardIds 失败: {}", e.getMessage());
+            log.warn("媒体扇入解析批次镜头范围失败: {}", e.getMessage());
         }
-        return ids;
+        return new ArrayList<>(ids);
+    }
+
+    private void appendStoryboardIds(JsonNode array, Set<Long> ids)
+    {
+        if (!array.isArray()) { return; }
+        for (JsonNode item : array)
+        {
+            long storyboardId = item.isObject()
+                    ? item.path("storyboardId").asLong(0L)
+                    : (item.canConvertToLong() ? item.asLong() : 0L);
+            if (storyboardId > 0) { ids.add(storyboardId); }
+        }
     }
 
     /** 镜头锁快照项：storyboardId + lockToken。 */

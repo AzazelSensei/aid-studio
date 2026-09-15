@@ -1,7 +1,7 @@
 package com.aid.rps.service.impl;
 
 import com.aid.common.error.TaskErrorSnapshot;
-import com.aid.tokendance.provider.common.TokenDanceResponseMapper;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -133,6 +133,8 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
     private static final String USAGE_KEY_USAGE_CALL_COUNT = "usage_call_count";
     private static final String USAGE_KEY_SUCCESSFUL_USAGE_CALL_COUNT = "successful_usage_call_count";
     private static final String USAGE_KEY_COMPLETE_USAGE_CALL_COUNT = "complete_usage_call_count";
+    private static final String USAGE_KEY_OBSERVED_COMPLETE_USAGE_CALL_COUNT =
+            "observed_complete_usage_call_count";
     private static final String USAGE_KEY_SUCCESSFUL_COMPLETE_USAGE_CALL_COUNT =
             "successful_complete_usage_call_count";
     private static final String USAGE_KEY_BILLABLE_CALL_COUNT = "billable_call_count";
@@ -158,6 +160,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
     private static final String CALL_USAGE_KEY_HAS_ANY_PROVIDER_USAGE = "has_any_provider_usage";
     private static final String CALL_USAGE_KEY_COMPLETE_PARENT_USAGE = "complete_parent_usage";
     private static final String CALL_USAGE_KEY_PROVIDER_STARTED = "provider_started";
+    private static final String CALL_USAGE_KEY_BILLABLE = "billable";
     private static final String CALL_USAGE_KEY_CALL_SLOT = "call_slot";
     private static final String CALL_IDENTITY_INPUT_SHA_MARKER = ",inputSha=";
     private static final String SNAPSHOT_KEY_USAGE_START_MEDIA_TASK_ID = "usageStartMediaTaskId";
@@ -1517,6 +1520,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
         int totalUsageCalls = 0;
         int totalSuccessfulUsageCalls = 0;
         int totalCompleteUsageCalls = 0;
+        int totalObservedCompleteUsageCalls = 0;
         int totalSuccessfulCompleteUsageCalls = 0;
         int totalProviderStartedCalls = 0;
         int totalBillableCalls = 0;
@@ -1539,9 +1543,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
             {
                 String modelCode = StrUtil.trim(mediaTask.getModelName());
                 boolean succeeded = Objects.equals(MEDIA_TASK_STATUS_SUCCEEDED, mediaTask.getStatus());
-                boolean providerStarted = mediaTask.getUpstreamAcceptTime() != null
-                        && !TokenDanceResponseMapper.isConfirmedRejection(
-                                mediaTask.getProtocol(), mediaTask.getErrorDetailJson());
+                boolean providerStarted = mediaTask.getUpstreamAcceptTime() != null;
                 boolean terminal = succeeded || Objects.equals(MEDIA_TASK_STATUS_FAILED, mediaTask.getStatus());
                 if (!terminal)
                 {
@@ -1628,6 +1630,10 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                 callUsage.put(USAGE_KEY_OUTPUT_COMPLETE, completeParentUsage);
                 callUsage.put(USAGE_KEY_INPUT_BUCKETS_COMPLETE, inputBucketsComplete);
                 callUsage.put(USAGE_KEY_OUTPUT_BUCKETS_COMPLETE, outputBucketsComplete);
+                boolean billableProviderCall = TextFailureBillingPolicy.shouldSettle(
+                        succeeded, providerStarted, mediaTask.getProtocol(),
+                        mediaTask.getErrorDetailJson(), hasAnyProviderUsage ? callUsage : null);
+                callUsage.put(CALL_USAGE_KEY_BILLABLE, billableProviderCall);
                 callUsages.add(callUsage);
 
                 if (succeeded)
@@ -1644,33 +1650,37 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                 }
                 if (completeParentUsage)
                 {
-                    totalCompleteUsageCalls++;
-                    totalInputTokens = saturatedAdd(totalInputTokens, inputTokens);
-                    totalOutputTokens = saturatedAdd(totalOutputTokens, outputTokens);
-                    totalUncachedInputTokens = saturatedAdd(totalUncachedInputTokens, uncachedInputTokens);
-                    totalCachedInputTokens = saturatedAdd(totalCachedInputTokens, cachedInputTokens);
-                    totalCacheWriteInputTokens = saturatedAdd(
-                            totalCacheWriteInputTokens, cacheWriteInputTokens);
-                    totalVisibleOutputTokens = saturatedAdd(totalVisibleOutputTokens, visibleOutputTokens);
-                    totalReasoningTokens = saturatedAdd(totalReasoningTokens, reasoningTokens);
-                    if (succeeded)
+                    totalObservedCompleteUsageCalls++;
+                    if (billableProviderCall)
                     {
-                        totalSuccessfulCompleteUsageCalls++;
-                    }
-                    if (inputBucketsComplete)
-                    {
-                        totalInputBucketsCompleteCalls++;
-                    }
-                    if (outputBucketsComplete)
-                    {
-                        totalOutputBucketsCompleteCalls++;
+                        totalCompleteUsageCalls++;
+                        totalInputTokens = saturatedAdd(totalInputTokens, inputTokens);
+                        totalOutputTokens = saturatedAdd(totalOutputTokens, outputTokens);
+                        totalUncachedInputTokens = saturatedAdd(totalUncachedInputTokens, uncachedInputTokens);
+                        totalCachedInputTokens = saturatedAdd(totalCachedInputTokens, cachedInputTokens);
+                        totalCacheWriteInputTokens = saturatedAdd(
+                                totalCacheWriteInputTokens, cacheWriteInputTokens);
+                        totalVisibleOutputTokens = saturatedAdd(totalVisibleOutputTokens, visibleOutputTokens);
+                        totalReasoningTokens = saturatedAdd(totalReasoningTokens, reasoningTokens);
+                        if (succeeded)
+                        {
+                            totalSuccessfulCompleteUsageCalls++;
+                        }
+                        if (inputBucketsComplete)
+                        {
+                            totalInputBucketsCompleteCalls++;
+                        }
+                        if (outputBucketsComplete)
+                        {
+                            totalOutputBucketsCompleteCalls++;
+                        }
                     }
                 }
                 if (providerStarted)
                 {
                     totalProviderStartedCalls++;
                 }
-                if (succeeded || hasAnyProviderUsage || providerStarted)
+                if (billableProviderCall)
                 {
                     totalBillableCalls++;
                 }
@@ -1682,7 +1692,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                     log.warn("提取媒体任务模型为空: taskId={}, mediaTaskId={}", taskId, mediaTask.getId());
                     continue;
                 }
-                int[] modelUsage = usageByModel.computeIfAbsent(modelCode, key -> new int[16]);
+                int[] modelUsage = usageByModel.computeIfAbsent(modelCode, key -> new int[17]);
                 if (succeeded)
                 {
                     modelUsage[2]++;
@@ -1697,32 +1707,36 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                 }
                 if (completeParentUsage)
                 {
-                    modelUsage[0] = saturatedAdd(modelUsage[0], inputTokens);
-                    modelUsage[1] = saturatedAdd(modelUsage[1], outputTokens);
-                    modelUsage[5]++;
-                    if (succeeded)
+                    modelUsage[16]++;
+                    if (billableProviderCall)
                     {
-                        modelUsage[6]++;
-                    }
-                    modelUsage[7] = saturatedAdd(modelUsage[7], uncachedInputTokens);
-                    modelUsage[8] = saturatedAdd(modelUsage[8], cachedInputTokens);
-                    modelUsage[9] = saturatedAdd(modelUsage[9], cacheWriteInputTokens);
-                    modelUsage[10] = saturatedAdd(modelUsage[10], visibleOutputTokens);
-                    modelUsage[11] = saturatedAdd(modelUsage[11], reasoningTokens);
-                    if (inputBucketsComplete)
-                    {
-                        modelUsage[12]++;
-                    }
-                    if (outputBucketsComplete)
-                    {
-                        modelUsage[13]++;
+                        modelUsage[0] = saturatedAdd(modelUsage[0], inputTokens);
+                        modelUsage[1] = saturatedAdd(modelUsage[1], outputTokens);
+                        modelUsage[5]++;
+                        if (succeeded)
+                        {
+                            modelUsage[6]++;
+                        }
+                        modelUsage[7] = saturatedAdd(modelUsage[7], uncachedInputTokens);
+                        modelUsage[8] = saturatedAdd(modelUsage[8], cachedInputTokens);
+                        modelUsage[9] = saturatedAdd(modelUsage[9], cacheWriteInputTokens);
+                        modelUsage[10] = saturatedAdd(modelUsage[10], visibleOutputTokens);
+                        modelUsage[11] = saturatedAdd(modelUsage[11], reasoningTokens);
+                        if (inputBucketsComplete)
+                        {
+                            modelUsage[12]++;
+                        }
+                        if (outputBucketsComplete)
+                        {
+                            modelUsage[13]++;
+                        }
                     }
                 }
                 if (providerStarted)
                 {
                     modelUsage[14]++;
                 }
-                if (succeeded || hasAnyProviderUsage || providerStarted)
+                if (billableProviderCall)
                 {
                     modelUsage[15]++;
                 }
@@ -1739,6 +1753,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
             modelUsage.put(USAGE_KEY_USAGE_CALL_COUNT, values[3]);
             modelUsage.put(USAGE_KEY_SUCCESSFUL_USAGE_CALL_COUNT, values[4]);
             modelUsage.put(USAGE_KEY_COMPLETE_USAGE_CALL_COUNT, values[5]);
+            modelUsage.put(USAGE_KEY_OBSERVED_COMPLETE_USAGE_CALL_COUNT, values[16]);
             modelUsage.put(USAGE_KEY_SUCCESSFUL_COMPLETE_USAGE_CALL_COUNT, values[6]);
             modelUsage.put(USAGE_KEY_BILLABLE_CALL_COUNT, modelBillableCalls);
             modelUsage.put(USAGE_KEY_PROVIDER_STARTED_CALL_COUNT, values[14]);
@@ -1770,6 +1785,8 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
         usageData.put(USAGE_KEY_USAGE_CALL_COUNT, totalUsageCalls);
         usageData.put(USAGE_KEY_SUCCESSFUL_USAGE_CALL_COUNT, totalSuccessfulUsageCalls);
         usageData.put(USAGE_KEY_COMPLETE_USAGE_CALL_COUNT, totalCompleteUsageCalls);
+        usageData.put(USAGE_KEY_OBSERVED_COMPLETE_USAGE_CALL_COUNT,
+                totalObservedCompleteUsageCalls);
         usageData.put(USAGE_KEY_SUCCESSFUL_COMPLETE_USAGE_CALL_COUNT,
                 totalSuccessfulCompleteUsageCalls);
         usageData.put(USAGE_KEY_BILLABLE_CALL_COUNT, totalBillableCalls);
@@ -2495,6 +2512,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
         int usageCallCount = 0;
         int successfulUsageCallCount = 0;
         int completeUsageCallCount = 0;
+        int observedCompleteUsageCallCount = 0;
         int billableCallCount = 0;
         boolean hasUnestimatedBillableCall = false;
         boolean ambiguousLegacyCallMapping = false;
@@ -2543,6 +2561,9 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                     ? resolveBoolean(callUsage.get(CALL_USAGE_KEY_HAS_ANY_PROVIDER_USAGE))
                     : completeParentUsage;
             boolean providerStarted = resolveBoolean(callUsage.get(CALL_USAGE_KEY_PROVIDER_STARTED));
+            boolean billable = callUsage.containsKey(CALL_USAGE_KEY_BILLABLE)
+                    ? resolveBoolean(callUsage.get(CALL_USAGE_KEY_BILLABLE))
+                    : successful || hasAnyProviderUsage || providerStarted;
             int inputTokens = Math.max(0, resolveInt(callUsage.get(USAGE_KEY_INPUT_TOKENS), 0));
             int outputTokens = Math.max(0, resolveInt(callUsage.get(USAGE_KEY_OUTPUT_TOKENS), 0));
             if (successful)
@@ -2559,9 +2580,13 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
             }
             if (completeParentUsage)
             {
-                completeUsageCallCount++;
+                observedCompleteUsageCallCount++;
+                if (billable)
+                {
+                    completeUsageCallCount++;
+                }
             }
-            if (successful || hasAnyProviderUsage || providerStarted)
+            if (billable)
             {
                 billableCallCount++;
                 if (!completeParentUsage && callEstimates.size() > 1
@@ -2576,7 +2601,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
             BigDecimal callActual = BigDecimal.ZERO;
             String billingSource = "NOT_BILLABLE";
             BillingSnapshot settledSnapshot = null;
-            if (tokenUsagePriced && completeParentUsage)
+            if (billable && tokenUsagePriced && completeParentUsage)
             {
                 Map<String, Object> singleUsage = new LinkedHashMap<>();
                 singleUsage.put(USAGE_KEY_INPUT_TOKENS, inputTokens);
@@ -2588,7 +2613,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                 settledSnapshot = callResult.getSnapshot();
                 billingSource = "PROVIDER_USAGE";
             }
-            else if (successful || hasAnyProviderUsage || providerStarted)
+            else if (billable)
             {
                 // provider 没给可用 token 时沿用该次预计金额。若实际可计费调用
                 // 超出冻结快照的逐次估算，无法安全为未知调用拆价，整个模型项保留预冻结上限。
@@ -2613,6 +2638,7 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
             settledCall.put(CALL_USAGE_KEY_HAS_ANY_PROVIDER_USAGE, hasAnyProviderUsage);
             settledCall.put(CALL_USAGE_KEY_COMPLETE_PARENT_USAGE, completeParentUsage);
             settledCall.put(CALL_USAGE_KEY_PROVIDER_STARTED, providerStarted);
+            settledCall.put(CALL_USAGE_KEY_BILLABLE, billable);
             if (StrUtil.isNotBlank(callSlot))
             {
                 settledCall.put(CALL_USAGE_KEY_CALL_SLOT, callSlot);
@@ -2658,18 +2684,24 @@ public class ExtractBillingServiceImpl implements IExtractBillingService
                     resolveInt(modelUsage.get(USAGE_KEY_USAGE_CALL_COUNT), 0));
             int aggregatedCompleteUsage = Math.max(0,
                     resolveInt(modelUsage.get(USAGE_KEY_COMPLETE_USAGE_CALL_COUNT), 0));
+            int aggregatedObservedCompleteUsage = Math.max(0,
+                    resolveInt(modelUsage.get(USAGE_KEY_OBSERVED_COMPLETE_USAGE_CALL_COUNT),
+                            aggregatedCompleteUsage));
             int aggregatedBillable = Math.max(0,
                     resolveInt(modelUsage.get(USAGE_KEY_BILLABLE_CALL_COUNT), 0));
             if (aggregatedSuccessful != successfulCallCount || aggregatedUsage != usageCallCount
                     || aggregatedCompleteUsage != completeUsageCallCount
+                    || aggregatedObservedCompleteUsage != observedCompleteUsageCallCount
                     || aggregatedBillable != billableCallCount)
             {
                 log.error("逐调用用量与模型聚合不一致，按保守上限结算: modelCode={}, callSuccessful={}, "
                                 + "aggregateSuccessful={}, callUsage={}, aggregateUsage={}, "
                                 + "callCompleteUsage={}, aggregateCompleteUsage={}, "
+                                + "callObservedCompleteUsage={}, aggregateObservedCompleteUsage={}, "
                                 + "callBillable={}, aggregateBillable={}",
                         modelCode, successfulCallCount, aggregatedSuccessful, usageCallCount,
                         aggregatedUsage, completeUsageCallCount, aggregatedCompleteUsage,
+                        observedCompleteUsageCallCount, aggregatedObservedCompleteUsage,
                         billableCallCount, aggregatedBillable);
                 actualAmount = itemPreHold;
                 tokenOverageAllowed = false;

@@ -1,5 +1,14 @@
 /** 认证与账户域：登录/验证码/微信登录绑定/实名认证/个人信息与积分/微信推送偏好/邀请。 */
 import type {
+AccountBindRequest,
+AccountCancelRequest,
+AccountLoginHistoryData,
+AccountLoginHistoryRequest,
+AccountPasswordChangeRequest,
+AccountPasswordSetRequest,
+AccountRebindRequest,
+AccountSecurityData,
+AccountUnbindRequest,
 ApiEnvelope,
 ApiListEnvelopeData,
 AuthPublicConfigData,
@@ -20,6 +29,7 @@ UserBalanceFromApi,
 UserInfoFromApi,
 WechatLoginCheckData,
 WechatLoginSuccessData,
+WechatBindCheckData,
 WechatNotifyPreferenceData,
 WechatQrcodeData
 } from '~/types/business-api'
@@ -101,8 +111,69 @@ export async function wechatBindQrcode(): Promise<WechatQrcodeData> {
 }
 
 /** 微信：检查绑定状态 */
-export async function wechatBindCheck(sceneStr: string): Promise<ApiEnvelope<unknown>> {
-  return request.get<ApiEnvelope<unknown>>('/auth/wechat/bind/check', { sceneStr })
+export async function wechatBindCheck(
+  sceneStr: string
+): Promise<ApiEnvelope<WechatBindCheckData>> {
+  return request.get<ApiEnvelope<WechatBindCheckData>>('/auth/wechat/bind/check', { sceneStr })
+}
+
+/** 账号安全中心：查询当前绑定与可操作状态 */
+export async function accountSecurity(): Promise<AccountSecurityData> {
+  const res = await request.post<ApiEnvelope<AccountSecurityData>>(
+    '/api/user/account/security',
+    {}
+  )
+  return unwrap(res)
+}
+
+export async function accountPasswordSet(body: AccountPasswordSetRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/api/user/account/password/set', body)
+}
+
+export async function accountPasswordChange(body: AccountPasswordChangeRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/api/user/account/password/change', body)
+}
+
+export async function accountBind(body: AccountBindRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/auth/bind', body)
+}
+
+export async function accountUnbind(body: AccountUnbindRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/auth/unbind', body)
+}
+
+export async function accountRebind(body: AccountRebindRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/api/user/account/rebind', body)
+}
+
+export async function accountLogoutOthers(): Promise<number> {
+  const res = await request.post<ApiEnvelope<number>>(
+    '/api/user/account/session/logout-others',
+    {}
+  )
+  return Number(unwrap(res)) || 0
+}
+
+export async function accountLogoutAll(): Promise<number> {
+  const res = await request.post<ApiEnvelope<number>>(
+    '/api/user/account/session/logout-all',
+    {}
+  )
+  return Number(unwrap(res)) || 0
+}
+
+export async function accountLoginHistory(
+  body: AccountLoginHistoryRequest
+): Promise<AccountLoginHistoryData> {
+  const res = await request.post<ApiEnvelope<AccountLoginHistoryData>>(
+    '/api/user/account/login-history',
+    body
+  )
+  return unwrap(res)
+}
+
+export async function accountCancel(body: AccountCancelRequest): Promise<void> {
+  await request.post<ApiEnvelope>('/auth/cancel', body)
 }
 
 /** 实名认证 */

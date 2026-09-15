@@ -39,6 +39,15 @@ public interface TextProviderClient {
     default void validateRequest(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
     }
 
+    /**
+     * Validate provider-side configuration needed for a real upstream call (credential, endpoint and
+     * upstream model identity). Quote-only validation must not call this hook. Submission paths call it
+     * after idempotency reuse has been resolved and before a task is created or any amount is frozen.
+     */
+    default void validateProviderConfiguration(AiModelConfigVo modelConfig,
+                                               MediaTextGenerateRequest request) {
+    }
+
     // 业务含义：上游一律走流式拉取，本方法将增量聚合为整段后写入 directText（同步 JSON 接口复用）。
     default ProviderSubmitResult submit(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
         StringBuilder aggregated = new StringBuilder();

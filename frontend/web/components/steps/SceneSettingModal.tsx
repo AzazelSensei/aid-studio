@@ -33,7 +33,7 @@ interface Props {
   settingVariant?: 'scene' | 'character' | 'prop'
   /** 形态提示词模式：直接编辑接口返回的提示词，不装饰为主资产结构化设定。 */
   promptOnly?: boolean
-  /** 非 auto 形态只读；保存按钮由 tooltip 解释不可编辑原因。 */
+  /** 缺少可保存的形态信息时只读；保存按钮由 tooltip 解释原因。 */
   editable?: boolean
   readOnlyTip?: string
   onOpenChange: (value: boolean) => void
@@ -85,7 +85,7 @@ export function SceneSettingModal({
   settingVariant = 'scene',
   promptOnly = false,
   editable = true,
-  readOnlyTip = '手添加的提示词禁止修改',
+  readOnlyTip = '形态信息不存在，暂时无法修改',
   onOpenChange,
   onSyncTitle,
   onSave,

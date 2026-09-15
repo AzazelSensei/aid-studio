@@ -5,6 +5,8 @@ interface Props {
   billing?: ModelBillingDetailVO | null
   maxRules?: number
   className?: string
+  /** 紧凑提交区只展示当前档，不提示其余档位。 */
+  showMore?: boolean
 }
 
 const CONDITION_LABELS: Record<string, string> = {
@@ -147,7 +149,12 @@ function rulePrice(rule: BillingRuleItemVO, creditUnit: string): string {
 }
 
 /** 展示服务端倍率折算后的 SKU 规则；不会把 MIXED 模型拆成多个模型项。 */
-export function ModelBillingRules({ billing, maxRules = 2, className = '' }: Props) {
+export function ModelBillingRules({
+  billing,
+  maxRules = 2,
+  className = '',
+  showMore = true
+}: Props) {
   const rules = Array.isArray(billing?.rules) ? billing.rules : []
   if (!rules.length) return null
   const visible = rules.slice(0, Math.max(1, maxRules))
@@ -175,7 +182,7 @@ export function ModelBillingRules({ billing, maxRules = 2, className = '' }: Pro
           <span className="model-billing-rules__price">{rulePrice(rule, creditUnit)}</span>
         </div>
       ))}
-      {rules.length > visible.length ? (
+      {showMore && rules.length > visible.length ? (
         <span className="model-billing-rules__more">另有 {rules.length - visible.length} 个档位</span>
       ) : null}
       {imageInputPrice != null || videoInputPrice != null ? (

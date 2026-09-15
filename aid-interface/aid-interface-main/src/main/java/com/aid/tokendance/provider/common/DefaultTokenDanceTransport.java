@@ -43,6 +43,18 @@ public class DefaultTokenDanceTransport implements TokenDanceTransport
             "x-dashscope-async", "anthropic-version");
 
     @Override
+    public void validateConfiguration(AiModelConfigVo config, String relativePath,
+            Map<String, String> protocolHeaders)
+    {
+        requireConfig(config);
+        ProviderEndpointUtils.buildSubmitUrl(config.getBaseUrl(), relativePath);
+        SubmitTimeoutResolver.resolveMs(config, DEFAULT_TIMEOUT_MS);
+        validateConfiguredHeaders(config.getExtraHeadersJson());
+        validateProtocolHeaders(protocolHeaders);
+        requireAuthorizationValue(config.getApiKey());
+    }
+
+    @Override
     public TokenDanceHttpResponse exchange(String method, AiModelConfigVo config,
             String relativePath, byte[] body, Map<String, String> protocolHeaders) throws IOException
     {
@@ -98,7 +110,7 @@ public class DefaultTokenDanceTransport implements TokenDanceTransport
             TokenDanceStreamHandler streamHandler, String requestContentType,
             int maxResponseBytes) throws IOException
     {
-        requireConfig(config);
+        validateConfiguration(config, relativePath, protocolHeaders);
         String normalizedMethod = normalizeMethod(method);
         String endpoint = ProviderEndpointUtils.buildSubmitUrl(config.getBaseUrl(), relativePath);
         HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection();
@@ -175,6 +187,43 @@ public class DefaultTokenDanceTransport implements TokenDanceTransport
         }
     }
 
+    private void validateConfiguredHeaders(String json)
+    {
+        Map<String, String> headers = OpenAiCompatiblePayloadResolver.parseExtraHeaders(json);
+        if (headers == null)
+        {
+            return;
+        }
+        for (Map.Entry<String, String> entry : headers.entrySet())
+        {
+            String name = normalizeHeaderName(entry.getKey());
+            String lower = name.toLowerCase(Locale.ROOT);
+            if (!PROTECTED_HEADERS.contains(lower) && !PROTOCOL_HEADERS.contains(lower))
+            {
+                requireHeaderValue(entry.getValue());
+            }
+        }
+    }
+
+    private void validateProtocolHeaders(Map<String, String> headers)
+    {
+        for (Map.Entry<String, String> entry : headers == null
+                ? Collections.<String, String>emptyMap().entrySet() : headers.entrySet())
+        {
+            String name = normalizeHeaderName(entry.getKey());
+            if (!PROTOCOL_HEADERS.contains(name.toLowerCase(Locale.ROOT)))
+            {
+                throw new IllegalArgumentException("协议请求头不支持");
+            }
+            String value = requireHeaderValue(entry.getValue());
+            if ("x-control-require-usage-tokens-return".equals(name.toLowerCase(Locale.ROOT))
+                    && !"*".equals(value))
+            {
+                throw new IllegalArgumentException("用量请求头无效");
+            }
+        }
+    }
+
     private void applyProtocolHeaders(HttpURLConnection connection, Map<String, String> headers)
     {
         for (Map.Entry<String, String> entry : headers == null
@@ -212,6 +261,16 @@ public class DefaultTokenDanceTransport implements TokenDanceTransport
                 || normalized.indexOf('\r') >= 0 || normalized.indexOf('\n') >= 0)
         {
             throw new IllegalArgumentException("请求头内容无效");
+        }
+        return normalized;
+    }
+
+    private String requireAuthorizationValue(String apiKey)
+    {
+        String normalized = StrUtil.trimToNull(apiKey);
+        if (normalized == null || normalized.indexOf('\r') >= 0 || normalized.indexOf('\n') >= 0)
+        {
+            throw new IllegalArgumentException("API Key 无效");
         }
         return normalized;
     }

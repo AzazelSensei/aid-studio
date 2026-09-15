@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,33 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
     }
 
     @Override
+    public void validateProviderConfiguration(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
+        if (modelConfig == null) {
+            throw com.aid.media.provider.TextFailureBillingPolicy.notSent("模型未配置");
+        }
+        if (StringUtils.isBlank(modelConfig.getApiKey())) {
+            throw com.aid.media.provider.TextFailureBillingPolicy.notSent(
+                    OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY);
+        }
+        try {
+            String url = OpenAiCompatiblePayloadResolver.buildApiUrl(modelConfig.getBaseUrl(),
+                    resolveApiSuffix(modelConfig, request), modelConfig.getExtraQueryJson());
+            if (StringUtils.isBlank(url)) {
+                throw new IllegalArgumentException(OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY);
+            }
+            URI.create(url);
+            OpenAiStyleChatStream.validateRequestConfiguration(url, modelConfig.getApiKey(),
+                    modelConfig.getAuthHeader(), modelConfig.getAuthPrefix(),
+                    OpenAiCompatiblePayloadResolver.parseExtraHeaders(modelConfig.getExtraHeadersJson()));
+        } catch (IllegalArgumentException invalidUrl) {
+            throw com.aid.media.provider.TextFailureBillingPolicy.notSent("模型服务地址配置错误");
+        }
+        if (StringUtils.isBlank(resolveEffectiveModel(modelConfig, request))) {
+            throw com.aid.media.provider.TextFailureBillingPolicy.notSent("真实模型名称未配置");
+        }
+    }
+
+    @Override
     public void streamChat(AiModelConfigVo modelConfig, MediaTextGenerateRequest request,
                            TextStreamCallbacks callbacks) throws IOException {
         TextOutputLimitResolver.normalize(request, modelConfig);
@@ -49,7 +77,9 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
             log.error("OpenAI 兼容流式: apiKey 为空, providerCode={}, modelCode={}",
                     modelConfig == null ? null : modelConfig.getProviderCode(),
                     modelConfig == null ? null : modelConfig.getModelCode());
-            callbacks.onError(OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY, null);
+            callbacks.onError(OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY,
+                    com.aid.media.provider.TextFailureBillingPolicy.notSent(
+                            OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY));
             return;
         }
         String model = resolveEffectiveModel(modelConfig, request);
@@ -85,12 +115,16 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
                     modelConfig == null ? null : modelConfig.getModelCode());
             return ProviderSubmitResult.builder()
                     .rawResponse(OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY)
+                    .errorDetailJson(com.aid.media.provider.TextFailureBillingPolicy.notSentSnapshot(
+                            OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY))
                     .build();
         }
         String apiKey = modelConfig.getApiKey();
         if (StringUtils.isBlank(apiKey)) {
             return ProviderSubmitResult.builder()
                     .rawResponse(OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY)
+                    .errorDetailJson(com.aid.media.provider.TextFailureBillingPolicy.notSentSnapshot(
+                            OpenAiCompatibleConstants.ERROR_API_KEY_EMPTY))
                     .build();
         }
         String model = resolveEffectiveModel(modelConfig, request);
@@ -149,7 +183,7 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
     /**
      * 计算实际下发上游的模型名：经 {@link ModelCodeResolver} 解析（real_model_code 解耦展示码），最后兜底常量。
      */
-    private String resolveEffectiveModel(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
+    protected String resolveEffectiveModel(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
         // 解析真实上游模型名：展示码 model_code 与真实模型名 real_model_code 解耦
         String resolved = ModelCodeResolver.resolveUpstreamModel(modelConfig,
                 request == null ? null : request.getModelName());
@@ -170,13 +204,17 @@ public class GenericOpenAiCompatibleTextProviderClient implements TextProviderCl
         if (StringUtils.isBlank(baseUrl)) {
             log.error("OpenAI 兼容{}: base_url 为空, providerCode={}",
                     isStream ? "流式" : "非流式", modelConfig == null ? null : modelConfig.getProviderCode());
-            callbacks.onError(OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY, null);
+            callbacks.onError(OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY,
+                    com.aid.media.provider.TextFailureBillingPolicy.notSent(
+                            OpenAiCompatibleConstants.ERROR_BASE_URL_EMPTY));
             return null;
         }
         if (StringUtils.isBlank(apiSuffix)) {
             log.error("OpenAI 兼容{}: api_suffix 为空, modelCode={}",
                     isStream ? "流式" : "非流式", modelConfig == null ? null : modelConfig.getModelCode());
-            callbacks.onError(OpenAiCompatibleConstants.ERROR_API_SUFFIX_EMPTY, null);
+            callbacks.onError(OpenAiCompatibleConstants.ERROR_API_SUFFIX_EMPTY,
+                    com.aid.media.provider.TextFailureBillingPolicy.notSent(
+                            OpenAiCompatibleConstants.ERROR_API_SUFFIX_EMPTY));
             return null;
         }
         return OpenAiCompatiblePayloadResolver.buildApiUrl(baseUrl, apiSuffix,

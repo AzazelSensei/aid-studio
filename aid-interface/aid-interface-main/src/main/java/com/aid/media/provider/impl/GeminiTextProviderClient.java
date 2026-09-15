@@ -16,7 +16,9 @@ import com.aid.media.provider.ReasoningContentSanitizer;
 import com.aid.media.provider.TextProviderClient;
 import com.aid.media.provider.TextReasoningOptionsResolver;
 import com.aid.media.provider.TextFinishReasonSupport;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import com.aid.media.provider.TextStreamCallbacks;
+import com.aid.media.provider.ProviderUsageSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -45,6 +47,7 @@ public class GeminiTextProviderClient implements TextProviderClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int HTTP_TIMEOUT_MINUTES = 10;
+    private static final int MAX_ERROR_BODY_BYTES = 64 * 1024;
 
     /**
      * 共享 HttpClient 实例，避免每次请求都创建新的连接池/Selector 线程。
@@ -68,12 +71,34 @@ public class GeminiTextProviderClient implements TextProviderClient {
     }
 
     @Override
+    public void validateProviderConfiguration(AiModelConfigVo modelConfig, MediaTextGenerateRequest request) {
+        if (modelConfig == null) {
+            throw TextFailureBillingPolicy.notSent("模型未配置");
+        }
+        if (StringUtils.isBlank(modelConfig.getApiKey())) {
+            throw TextFailureBillingPolicy.notSent(GeminiConstants.ERROR_API_KEY_EMPTY);
+        }
+        try {
+            String url = buildGenerateContentUrl(modelConfig.getBaseUrl(), modelConfig.getApiSuffix(),
+                    resolveEffectiveModel(modelConfig, request));
+            HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header(GeminiConstants.HEADER_API_KEY, modelConfig.getApiKey())
+                    .header(HttpConstants.HEADER_CONTENT_TYPE, HttpConstants.CONTENT_TYPE_JSON)
+                    .POST(HttpRequest.BodyPublishers.ofString("{}", StandardCharsets.UTF_8))
+                    .build();
+        } catch (IllegalArgumentException invalidUrl) {
+            throw TextFailureBillingPolicy.notSent("模型服务地址配置错误");
+        }
+    }
+
+    @Override
     public void streamChat(AiModelConfigVo modelConfig, MediaTextGenerateRequest request,
                            TextStreamCallbacks callbacks) throws IOException {
         try (GeminiFileUploadSupport.Session ignored = GeminiFileUploadSupport.prepare(modelConfig, request)) {
             streamChatPrepared(modelConfig, request, callbacks);
         } catch (com.aid.common.exception.ServiceException error) {
-            callbacks.onError(error.getMessage(), null);
+            callbacks.onError(error.getMessage(), error);
         }
     }
 
@@ -82,7 +107,8 @@ public class GeminiTextProviderClient implements TextProviderClient {
         com.aid.media.provider.TextOutputLimitResolver.normalize(request, modelConfig);
         String apiKey = modelConfig != null ? modelConfig.getApiKey() : null;
         if (StringUtils.isBlank(apiKey)) {
-            callbacks.onError(GeminiConstants.ERROR_API_KEY_EMPTY, null);
+            callbacks.onError(GeminiConstants.ERROR_API_KEY_EMPTY,
+                    TextFailureBillingPolicy.notSent(GeminiConstants.ERROR_API_KEY_EMPTY));
             return;
         }
         String model = resolveEffectiveModel(modelConfig, request);
@@ -109,10 +135,23 @@ public class GeminiTextProviderClient implements TextProviderClient {
             return;
         }
         if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
-            String response = resp.body() == null ? "" : resp.body().limit(100).reduce("", String::concat);
+            String response = readBoundedFailureBody(resp.body());
+            if (response == null) {
+                log.error("Gemini 文本流式 HTTP 错误响应超过上限, url={}, status={}",
+                        url, resp.statusCode());
+                callbacks.onError("上游错误响应过大", null);
+                return;
+            }
             log.error("Gemini 文本流式 HTTP 失败, url={}, status={}, bodyLen={}",
                     url, resp.statusCode(), response.length());
-            callbacks.onError(ProviderErrorSanitizer.fromHttp(resp.statusCode(), response), null);
+            String safeMessage = ProviderErrorSanitizer.fromHttp(resp.statusCode(), response);
+            Map<String, Object> usage = parseHttpFailureUsage(response,
+                    isReasoningProvablyDisabled(modelConfig, body));
+            if (ProviderUsageSupport.hasAnyProviderUsage(usage)) {
+                callbacks.onUsage(usage);
+            }
+            callbacks.onError(safeMessage,
+                    TextFailureBillingPolicy.httpFailure(resp.statusCode(), safeMessage, usage));
             return;
         }
         boolean includeReasoning = Boolean.TRUE.equals(request.getIncludeReasoning());
@@ -155,7 +194,10 @@ public class GeminiTextProviderClient implements TextProviderClient {
         try (GeminiFileUploadSupport.Session ignored = GeminiFileUploadSupport.prepare(modelConfig, request)) {
             return chatSyncPrepared(modelConfig, request);
         } catch (com.aid.common.exception.ServiceException error) {
-            return ProviderSubmitResult.builder().rawResponse(error.getMessage()).build();
+            return ProviderSubmitResult.builder()
+                    .rawResponse(error.getMessage())
+                    .errorDetailJson(error.getTaskErrorJson())
+                    .build();
         }
     }
 
@@ -164,7 +206,10 @@ public class GeminiTextProviderClient implements TextProviderClient {
         com.aid.media.provider.TextOutputLimitResolver.normalize(request, modelConfig);
         String apiKey = modelConfig != null ? modelConfig.getApiKey() : null;
         if (StringUtils.isBlank(apiKey)) {
-            return ProviderSubmitResult.builder().rawResponse(GeminiConstants.ERROR_API_KEY_EMPTY).build();
+            return ProviderSubmitResult.builder()
+                    .rawResponse(GeminiConstants.ERROR_API_KEY_EMPTY)
+                    .errorDetailJson(TextFailureBillingPolicy.notSentSnapshot(GeminiConstants.ERROR_API_KEY_EMPTY))
+                    .build();
         }
         String model = resolveEffectiveModel(modelConfig, request);
         String url = buildGenerateContentUrl(modelConfig.getBaseUrl(), modelConfig.getApiSuffix(), model);
@@ -173,7 +218,10 @@ public class GeminiTextProviderClient implements TextProviderClient {
         try {
             json = MAPPER.writeValueAsString(com.aid.model.definition.ModelConfiguredRequestBody.apply(modelConfig, body, request));
         } catch (Exception e) {
-            return ProviderSubmitResult.builder().rawResponse("JSON序列化失败").build();
+            return ProviderSubmitResult.builder()
+                    .rawResponse("JSON序列化失败")
+                    .errorDetailJson(TextFailureBillingPolicy.notSentSnapshot("JSON序列化失败"))
+                    .build();
         }
         log.info("Gemini 非流式文本(NON_STREAM), url={}, model={}", url, model);
         HttpClient client = SHARED_HTTP_CLIENT;
@@ -196,8 +244,15 @@ public class GeminiTextProviderClient implements TextProviderClient {
         String respBody = resp.body() != null ? resp.body() : "";
         if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
             log.error("Gemini chatSync HTTP 失败, status={}, bodyLen={}", resp.statusCode(), respBody.length());
+            String safeMessage = ProviderErrorSanitizer.fromHttp(resp.statusCode(), respBody);
+            Map<String, Object> usage = parseHttpFailureUsage(respBody,
+                    isReasoningProvablyDisabled(modelConfig, body));
             return ProviderSubmitResult.builder()
-                    .rawResponse(ProviderErrorSanitizer.fromHttp(resp.statusCode(), respBody)).build();
+                    .rawResponse(safeMessage)
+                    .errorDetailJson(TextFailureBillingPolicy.httpFailureSnapshot(
+                            resp.statusCode(), safeMessage, usage))
+                    .usage(usage)
+                    .build();
         }
         Map<String, Object> usage = Map.of();
         try {
@@ -602,6 +657,20 @@ public class GeminiTextProviderClient implements TextProviderClient {
         return usage;
     }
 
+    private Map<String, Object> parseHttpFailureUsage(String response,
+                                                      boolean reasoningProvablyDisabled) {
+        if (StringUtils.isBlank(response)) {
+            return null;
+        }
+        try {
+            Map<String, Object> usage = normalizeUsage(MAPPER.readTree(response).path("usageMetadata"),
+                    reasoningProvablyDisabled);
+            return usage.isEmpty() ? null : usage;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private boolean isReasoningProvablyDisabled(AiModelConfigVo modelConfig,
                                                  Map<String, Object> requestBody) {
         Map<?, ?> generationConfig = requestBody != null
@@ -678,6 +747,10 @@ public class GeminiTextProviderClient implements TextProviderClient {
 
     private boolean emitStreamChunk(JsonNode root, TextStreamCallbacks callbacks,
                                     boolean includeReasoning, boolean reasoningProvablyDisabled) {
+        Map<String, Object> usage = normalizeUsage(root.path("usageMetadata"), reasoningProvablyDisabled);
+        if (!usage.isEmpty()) {
+            callbacks.onUsage(usage);
+        }
         String finishError = containsUnsupportedPart(root) ? "生成方式不支持" : resolveFinishError(root);
         if (finishError != null) {
             callbacks.onError(finishError, null);
@@ -702,11 +775,32 @@ public class GeminiTextProviderClient implements TextProviderClient {
                 }
             }
         }
-        Map<String, Object> usage = normalizeUsage(root.path("usageMetadata"), reasoningProvablyDisabled);
-        if (!usage.isEmpty()) {
-            callbacks.onUsage(usage);
-        }
         return true;
+    }
+
+    /** 完整消费并关闭错误响应流；超过上限时返回 null，让调用方按结果不确定保守处理。 */
+    private String readBoundedFailureBody(Stream<String> body) {
+        if (body == null) {
+            return "";
+        }
+        try (Stream<String> lines = body) {
+            StringBuilder result = new StringBuilder();
+            java.util.Iterator<String> iterator = lines.iterator();
+            int bytes = 0;
+            while (iterator.hasNext()) {
+                String line = StringUtils.defaultString(iterator.next());
+                int nextBytes = line.getBytes(StandardCharsets.UTF_8).length + 1;
+                if (nextBytes > MAX_ERROR_BODY_BYTES - bytes) {
+                    return null;
+                }
+                if (!result.isEmpty()) {
+                    result.append('\n');
+                }
+                result.append(line);
+                bytes += nextBytes;
+            }
+            return result.toString();
+        }
     }
 
     private static Map<String, Object> geminiContent(String role, String text) {

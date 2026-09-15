@@ -14,10 +14,7 @@ import { VoiceTimbrePickerModal } from '../VoiceTimbrePickerModal'
 import { EditSceneImageModalLazy } from './editSceneImageModalLoader'
 import { resolveScpFormImageBillingRequest } from './scpBillingQuote'
 import type { ScpCtx } from './types'
-import {
-  isRpsSettingPromptEditable,
-  RPS_SETTING_PROMPT_READONLY_TIP
-} from './scpSettingPromptUtils'
+import { isRpsSettingPromptEditable } from './scpSettingPromptUtils'
 
 /** 第三步全部弹窗接线（与原模板 1382-1590 行一一对应；重型编辑弹窗 lazy 挂载） */
 export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
@@ -46,7 +43,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
         settingVariant="scene"
         promptOnly
         editable={isRpsSettingPromptEditable(sceneSetting)}
-        readOnlyTip={RPS_SETTING_PROMPT_READONLY_TIP}
         sceneName={ctx.currentSceneName()}
         initialContent={sceneSetting?.content || ''}
         onSave={ctx.handleSaveSceneSetting}
@@ -81,12 +77,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
             rpsFormIds={ctx.sceneFormIdsByIndex.value[ctx.currentEditSceneIndex.value] ?? []}
             rpsAssetIdsByIndex={ctx.sceneAssetIds.value}
             rpsFormIdsByIndex={ctx.sceneFormIdsByIndex.value}
-            manualSettingEditBlockedTooltip={(sceneIndex) => {
-              const name = ctx.localValue.value.scenes[sceneIndex]
-              return isRpsSettingPromptEditable(ctx.sceneSettings.value[name])
-                ? null
-                : RPS_SETTING_PROMPT_READONLY_TIP
-            }}
             canAutoGenerateImage={(sceneIndex) => ctx.canAutoGenerateSceneImage(sceneIndex)}
             onAutoRegenerateImage={(sceneIndex, _imageIndex, image) => {
               const formId = Number((image as { rpsFormId?: unknown } | null)?.rpsFormId)
@@ -114,7 +104,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
         settingVariant="character"
         promptOnly
         editable={isRpsSettingPromptEditable(characterSetting)}
-        readOnlyTip={RPS_SETTING_PROMPT_READONLY_TIP}
         sceneName={characterSettingForm?.name || ctx.currentCharacterName()}
         initialContent={characterSetting?.content || ''}
         onSave={ctx.handleSaveCharacterFormSetting}
@@ -127,7 +116,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
         settingVariant="prop"
         promptOnly
         editable={isRpsSettingPromptEditable(propSetting)}
-        readOnlyTip={RPS_SETTING_PROMPT_READONLY_TIP}
         sceneName={propSettingForm?.name || ctx.currentPropName()}
         initialContent={propSetting?.content || ''}
         onSave={ctx.handleSavePropFormSetting}
@@ -162,12 +150,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
             rpsFormIds={ctx.characterFormIdsByIndex.value[ctx.currentEditCharacterIndex.value] ?? []}
             rpsAssetIdsByIndex={ctx.characterAssetIds.value}
             rpsFormIdsByIndex={ctx.characterFormIdsByIndex.value}
-            manualSettingEditBlockedTooltip={(characterIndex) => {
-              const name = ctx.localValue.value.characters[characterIndex]
-              return isRpsSettingPromptEditable(ctx.characterSettings.value[name])
-                ? null
-                : RPS_SETTING_PROMPT_READONLY_TIP
-            }}
             onUpdate={(sceneIndex, data) => void ctx.handleCharacterImageUpdate(sceneIndex, data)}
           />
         </Suspense>
@@ -274,12 +256,6 @@ export function ScpModalsView({ ctx }: { ctx: ScpCtx }) {
             rpsFormIds={ctx.propFormIdsByIndex.value[ctx.currentEditPropIndex.value] ?? []}
             rpsAssetIdsByIndex={ctx.propAssetIds.value}
             rpsFormIdsByIndex={ctx.propFormIdsByIndex.value}
-            manualSettingEditBlockedTooltip={(propIndex) => {
-              const name = ctx.localValue.value.props[propIndex]
-              return isRpsSettingPromptEditable(ctx.propSettings.value[name])
-                ? null
-                : RPS_SETTING_PROMPT_READONLY_TIP
-            }}
             onUpdate={(sceneIndex, data) => void ctx.handlePropImageUpdate(sceneIndex, data)}
           />
         </Suspense>

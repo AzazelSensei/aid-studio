@@ -9,6 +9,7 @@ import { useHomeSidebarExtraNav } from '~/composables/useHomeSidebarExtraNav'
 import { useUserStore } from '~/stores/user'
 import { logoutToPublicHome, requireLogin } from '~/utils/authLoginNavigation'
 import { retainFloatingPosition } from '~/utils/reactUpdateGuards'
+import { openAccountSettings } from '~/stores/accountSettings'
 
 /**
  * 创作页左侧栏（原 composables/useCreateFlowSidebarChrome.ts）：
@@ -117,6 +118,11 @@ export function useCreateFlowSidebarChrome() {
     router.push('/billing')
   }, [closeUserMenu, router])
 
+  const openAccountSettingsFromMenu = useCallback(() => {
+    closeUserMenu()
+    openAccountSettings()
+  }, [closeUserMenu])
+
   const handleLogout = useCallback(() => {
     Modal.confirm({
       className: 'home-confirm-modal',
@@ -197,6 +203,7 @@ export function useCreateFlowSidebarChrome() {
     closeUserMenu,
     openFaq,
     openBilling,
+    openAccountSettingsFromMenu,
     openRechargeFromMenu,
     handleLogout,
     handleDocumentClick,

@@ -44,6 +44,12 @@ public final class OpenAiStyleChatStream {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Validate URL/auth/custom headers without opening a connection. */
+    public static void validateRequestConfiguration(String url, String apiKey,
+            String authHeader, String authPrefix, Map<String, String> extraHeaders) {
+        buildJsonRequest(url, apiKey, authHeader, authPrefix, extraHeaders, "{}", false);
+    }
+
     /**
      * 全局复用的线程安全 HttpClient，避免每次请求新建连接池/Selector 线程导致资源耗尽。
      */
@@ -86,7 +92,10 @@ public final class OpenAiStyleChatStream {
             req = buildJsonRequest(url, apiKey, authHeader, authPrefix, extraHeaders, jsonBody, false);
         } catch (IllegalArgumentException badConfig) {
             log.error("非流式文本请求构造失败（鉴权或 URL 非法）, url={}, err={}", url, badConfig.getMessage());
-            return ProviderSubmitResult.builder().rawResponse("配置错误").build();
+            return ProviderSubmitResult.builder()
+                    .rawResponse("配置错误")
+                    .errorDetailJson(TextFailureBillingPolicy.notSentSnapshot("配置错误"))
+                    .build();
         }
         HttpResponse<String> resp;
         try {
@@ -109,13 +118,21 @@ public final class OpenAiStyleChatStream {
         }
         if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
             log.error("非流式文本上游HTTP失败, url={}, status={}, bodyLen={}", url, resp.statusCode(), body.length());
+            String safeMessage = ProviderErrorSanitizer.fromHttp(resp.statusCode(), body);
+            Map<String, Object> usage = parseUsageSafely(body);
             return ProviderSubmitResult.builder()
-                    .rawResponse(ProviderErrorSanitizer.fromHttp(resp.statusCode(), body)).build();
+                    .rawResponse(safeMessage)
+                    .errorDetailJson(TextFailureBillingPolicy.httpFailureSnapshot(
+                            resp.statusCode(), safeMessage, usage))
+                    .usage(usage)
+                    .build();
         }
         // 解析非流式 JSON 响应：choices[0].message.content + usage
+        Map<String, Object> observedUsage = null;
         try {
             JsonNode root = MAPPER.readTree(body);
             Map<String, Object> usage = parseUsageFromRoot(root);
+            observedUsage = usage;
             // 提取文本
             JsonNode choices = root.path("choices");
             if (choices.isArray() && !choices.isEmpty()) {
@@ -165,6 +182,7 @@ public final class OpenAiStyleChatStream {
             return ProviderSubmitResult.builder()
                 .directText(null)
                 .rawResponse("解析响应失败")
+                .usage(observedUsage == null || observedUsage.isEmpty() ? null : observedUsage)
                 .build();
         }
     }
@@ -373,7 +391,7 @@ public final class OpenAiStyleChatStream {
             req = buildJsonRequest(url, apiKey, authHeader, authPrefix, extraHeaders, jsonBody, true);
         } catch (IllegalArgumentException badConfig) {
             log.error("文本流式请求构造失败（鉴权或 URL 非法）, url={}, err={}", url, badConfig.getMessage());
-            callbacks.onError("配置错误", badConfig);
+            callbacks.onError("配置错误", TextFailureBillingPolicy.notSent("配置错误"));
             return;
         }
         HttpResponse<InputStream> resp;
@@ -386,10 +404,21 @@ public final class OpenAiStyleChatStream {
         }
         callbacks.onResponseBody(resp.body());
         if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
-            String errBody = readAllAndClose(resp.body());
+            ErrorBodyRead errorBody = readAllAndClose(resp.body());
+            String errBody = errorBody.body();
             log.error("文本流式上游 HTTP 失败, url={}, status={}, bodyLen={}",
                     url, resp.statusCode(), StringUtils.length(errBody));
-            callbacks.onError(ProviderErrorSanitizer.fromHttp(resp.statusCode(), errBody), null);
+            if (!errorBody.complete()) {
+                callbacks.onError("上游错误响应过大", null);
+                return;
+            }
+            String safeMessage = ProviderErrorSanitizer.fromHttp(resp.statusCode(), errBody);
+            Map<String, Object> usage = parseUsageSafely(errBody);
+            if (ProviderUsageSupport.hasAnyProviderUsage(usage)) {
+                callbacks.onUsage(usage);
+            }
+            callbacks.onError(safeMessage,
+                    TextFailureBillingPolicy.httpFailure(resp.statusCode(), safeMessage, usage));
             return;
         }
         AtomicBoolean sawDone = new AtomicBoolean(false);
@@ -449,6 +478,18 @@ public final class OpenAiStyleChatStream {
         }
     }
 
+    private static Map<String, Object> parseUsageSafely(String body) {
+        if (StringUtils.isBlank(body)) {
+            return null;
+        }
+        try {
+            Map<String, Object> usage = parseUsageFromRoot(MAPPER.readTree(body));
+            return usage == null || usage.isEmpty() ? null : usage;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     /**
      * @return false 表示解析致命错误，应终止流且不再 onComplete。
      */
@@ -461,10 +502,8 @@ public final class OpenAiStyleChatStream {
         }
         try {
             JsonNode root = MAPPER.readTree(dataJson);
-            if (tools != null) tools.accept(root);
-
             // 先提取 usage（Qwen 等模型的最终 usage chunk 中 choices 为空，
-            // 必须在 choices 判断之前解析，否则 usage 会被跳过）。
+            // 必须在工具、终止原因和正文校验之前解析，否则异常路径会丢失真实用量）。
             JsonNode usageNode = root.path("usage");
             if (!usageNode.isMissingNode() && !usageNode.isNull()) {
                 Map<String, Object> usage = parseUsageFromRoot(root);
@@ -472,6 +511,7 @@ public final class OpenAiStyleChatStream {
                     callbacks.onUsage(usage);
                 }
             }
+            if (tools != null) tools.accept(root);
 
             // 再提取 delta 文本（choices 为空时跳过 delta，但 usage 已处理）。
             JsonNode choices = root.path("choices");
@@ -550,9 +590,9 @@ public final class OpenAiStyleChatStream {
                 || functionCall != null && !functionCall.isNull() && !functionCall.isEmpty();
     }
 
-    private static String readAllAndClose(InputStream in) throws IOException {
+    private static ErrorBodyRead readAllAndClose(InputStream in) throws IOException {
         if (in == null) {
-            return "";
+            return new ErrorBodyRead("", true);
         }
         // 错误响应读取上限 64KB，防止上游返回大 HTML 错误页拖累内存。
         try (InputStream closeable = in;
@@ -564,13 +604,16 @@ public final class OpenAiStyleChatStream {
                 if (totalLen + line.length() + 1 > MAX_ERROR_BODY_BYTES) {
                     sb.append(line, 0, Math.min(line.length(), MAX_ERROR_BODY_BYTES - totalLen));
                     sb.append("\n...[error body truncated]");
-                    break;
+                    return new ErrorBodyRead(sb.toString(), false);
                 }
                 sb.append(line).append('\n');
                 totalLen += line.length() + 1;
             }
-            return sb.toString();
+            return new ErrorBodyRead(sb.toString(), true);
         }
+    }
+
+    private record ErrorBodyRead(String body, boolean complete) {
     }
 
     /**

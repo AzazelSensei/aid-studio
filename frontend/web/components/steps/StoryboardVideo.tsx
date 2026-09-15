@@ -54,6 +54,7 @@ import {
   consumeCreateFlowStepModalIntent,
   peekCreateFlowStepModalIntent,
   requestCreateFlowStepModal,
+  requestStoryboardImageStepModal,
 } from '~/utils/createFlowStepModalIntent'
 import { useCreateFlowStepModalIntent } from '~/hooks/useCreateFlowStepModalIntent'
 import {
@@ -461,9 +462,9 @@ export function StoryboardVideo({
     setBatchGenerateVideoModalOpen(true)
   }
 
-  /** 跳转分镜设计并打开「编辑分镜图」 */
+  /** 跳转分镜设计；仅需要分镜图的模式打开对应编辑弹窗 */
   function jumpToScriptWithImageModal(index: number) {
-    requestCreateFlowStepModal('storyboard-image', index)
+    requestStoryboardImageStepModal(creationMode, index)
     onGoStep(3)
   }
 
@@ -528,7 +529,6 @@ export function StoryboardVideo({
 
   function handleJumpToStoryboardScript(panelIndex: number) {
     setIsVideoModalOpen(false)
-    requestCreateFlowStepModal('storyboard-image', panelIndex)
     onJumpToStoryboardScript(panelIndex)
     onGoStep(3)
   }

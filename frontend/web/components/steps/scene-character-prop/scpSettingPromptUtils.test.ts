@@ -31,6 +31,15 @@ describe('scpSettingPromptUtils', () => {
     expect(second).toMatchObject({ formId: 12, content: '<p>黑色战甲</p>' })
   })
 
+  it('preserves API prompt whitespace when opening the setting editor', () => {
+    const state = settingEditorStateFromRpsForm(
+      form({ id: 13, descriptions: '正面  站立\n\t侧面转身', createSource: 'auto' }),
+      'character'
+    )
+
+    expect(state.content).toBe('<p>正面  站立<br/>\t侧面转身</p>')
+  })
+
   it('uses descriptions for character forms and prompt for prop forms', () => {
     expect(buildRpsSettingPromptUpdateRequest('character', 21, '<p>青年<br/>短发</p>')).toEqual(
       { id: 21, descriptions: '青年\n短发' }
@@ -41,12 +50,12 @@ describe('scpSettingPromptUtils', () => {
     })
   })
 
-  it('does not offer a fake prompt save for manual forms rejected by the API', () => {
+  it('allows both manual and automatic forms to edit their prompts', () => {
     expect(
       isRpsSettingPromptEditable(
         settingEditorStateFromRpsForm(form({ id: 41, prompt: '旧木箱', createSource: 'manual' }), 'prop')
       )
-    ).toBe(false)
+    ).toBe(true)
     expect(
       isRpsSettingPromptEditable(
         settingEditorStateFromRpsForm(form({ id: 42, prompt: '金属箱', createSource: 'auto' }), 'prop')

@@ -7,6 +7,7 @@ import { LoginModalHost } from '@/components/login/LoginModalHost'
 import { RouteGuard } from '@/components/app/RouteGuard'
 import { ViewportScaleEffect } from '@/components/app/ViewportScaleEffect'
 import { PublicSiteHead } from '@/components/app/PublicSiteHead'
+import { AccountSettingsHost } from '@/components/account/AccountSettingsHost'
 
 import './globals.css'
 import 'antd/dist/reset.css'
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ViewportScaleEffect />
             <RouteGuard>{children}</RouteGuard>
             <LoginModalHost />
+            <AccountSettingsHost />
             {/* 应用根壳遮罩（原 app.vue）：全局 loading + 跨壳层路由遮罩，仅覆盖不卸载页面子树 */}
             <AppShellOverlay />
           </AntdThemeProvider>

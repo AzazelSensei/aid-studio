@@ -5,10 +5,9 @@ import type {
 } from '~/types/business-api'
 import { userAssetRpsUpdateForm } from '~/utils/businessApi'
 import { htmlToPlainPreserveLineBreaks } from '~/utils/htmlPlain'
+import { plainPromptTextToEditorHtml } from '~/utils/storyboardPromptAssetRef'
 
 type RpsSettingPromptVariant = 'scene' | 'character' | 'prop'
-
-export const RPS_SETTING_PROMPT_READONLY_TIP = '手添加的提示词禁止修改'
 
 export type RpsSettingEditorState = {
   content: string
@@ -20,14 +19,6 @@ export type RpsSettingEditorState = {
 function validFormId(value: unknown): number | null {
   const id = Number(value)
   return Number.isFinite(id) && id > 0 ? id : null
-}
-
-/** 提示词是纯文本协议，不能按 Markdown 解析，否则保存时会静默改变 `#`、`*` 等原文。 */
-function promptTextToEditorHtml(text: string): string {
-  const prompt = (text || '').trim()
-  if (!prompt) return ''
-  const escaped = prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return `<p>${escaped.replace(/\r?\n/g, '<br/>')}</p>`
 }
 
 /** 资产设定对应列表返回的默认形态；设定入口与形态数组的首项保持同一语义。 */
@@ -60,7 +51,7 @@ export function settingEditorStateFromRpsForm(
   const prompt = rpsFormPrompt(form, variant)
   const formId = validFormId(form?.id)
   return {
-    content: promptTextToEditorHtml(prompt),
+    content: plainPromptTextToEditorHtml(prompt),
     isNew: !prompt,
     ...(formId != null ? { formId } : {}),
     createSource: form?.createSource ?? null
@@ -70,10 +61,7 @@ export function settingEditorStateFromRpsForm(
 export function isRpsSettingPromptEditable(
   setting: RpsSettingEditorState | null | undefined
 ): boolean {
-  return (
-    validFormId(setting?.formId) != null &&
-    String(setting?.createSource ?? '').trim().toLowerCase() === 'auto'
-  )
+  return validFormId(setting?.formId) != null
 }
 
 export function buildRpsSettingPromptUpdateRequest(
@@ -88,7 +76,7 @@ export function buildRpsSettingPromptUpdateRequest(
 }
 
 /**
- * 三类设定统一保存形态提示词。权限检查在请求层再次执行，避免仅依赖禁用按钮被绕过。
+ * 三类设定统一保存形态提示词；自动和手动创建的形态均可编辑。
  */
 export async function saveRpsSettingPrompt(
   variant: RpsSettingPromptVariant,
@@ -96,7 +84,7 @@ export async function saveRpsSettingPrompt(
   editorContent: string
 ): Promise<RpsSettingEditorState> {
   if (!isRpsSettingPromptEditable(setting)) {
-    throw new Error(RPS_SETTING_PROMPT_READONLY_TIP)
+    throw new Error('形态信息不存在，请刷新后重试')
   }
   const formId = validFormId(setting?.formId)
   if (formId == null) {
@@ -108,7 +96,7 @@ export async function saveRpsSettingPrompt(
   )
   const updatedPrompt = rpsFormPrompt(updated, variant)
   const nextFormId = validFormId(updated?.id) ?? formId
-  const content = updatedPrompt ? promptTextToEditorHtml(updatedPrompt) : editorContent
+  const content = updatedPrompt ? plainPromptTextToEditorHtml(updatedPrompt) : editorContent
 
   return {
     ...setting,

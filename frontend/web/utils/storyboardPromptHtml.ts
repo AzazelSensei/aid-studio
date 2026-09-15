@@ -254,13 +254,23 @@ function renderPromptPlainSegments(text: string, segments: PromptPlainSegment[])
   const parts: string[] = []
   let last = 0
   for (const seg of segments) {
-    if (seg.start > last) parts.push(escapeHtml(text.slice(last, seg.start)))
+    if (seg.start > last) parts.push(escapePromptPlainText(text.slice(last, seg.start)))
     if (seg.kind === 'param') parts.push(promptParamRefSpanHtml(seg.ref))
     else if (seg.kind === 'asset') parts.push(promptAssetRefSpanHtml(promptAssetItemToRefValue(seg.item)))
     last = seg.end
   }
-  if (last < text.length) parts.push(escapeHtml(text.slice(last)))
+  if (last < text.length) parts.push(escapePromptPlainText(text.slice(last)))
   return parts.join('')
+}
+
+function escapePromptPlainText(text: string): string {
+  return escapeHtml(text).replace(/\r\n?/g, '\n').replace(/\n/g, '<br/>')
+}
+
+/** 接口纯文本 → 不解析 Markdown/素材引用的编辑器 HTML，保留换行、制表符和连续空格。 */
+export function plainPromptTextToEditorHtml(plain: string): string {
+  const text = String(plain || '').trim()
+  return text ? `<p>${escapePromptPlainText(text)}</p>` : ''
 }
 
 /** 接口纯文本 → 编辑器 HTML（含资产块与参数块） */
@@ -294,7 +304,7 @@ export function storyboardPromptPlainToHtml(
   ]
 
   if (!text.includes('@') && labeledRanges.length === 0) {
-    return `<p>${escapeHtml(text)}</p>`
+    return plainPromptTextToEditorHtml(text)
   }
 
   const segments = buildPromptPlainSegments(

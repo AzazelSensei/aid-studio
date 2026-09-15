@@ -1,3 +1,5 @@
+import { skipsStoryboardImageGeneration } from '~/utils/creationModeUiRules'
+
 /**
  * 跨步骤跳转后自动打开对应编辑弹窗的待处理意图。
  * 独立小模块：删除本文件并去掉各步骤的 request/consume 接线即可整段卸载该能力。
@@ -51,6 +53,21 @@ export function requestCreateFlowStepModal(
   }
   setIntent(next)
   return next
+}
+
+/**
+ * 跳转分镜设计时，只有需要生成分镜图的创作模式才打开图片编辑弹窗。
+ * 无分镜图模式会同时清理残留意图，避免项目模式切换后误开弹窗。
+ */
+export function requestStoryboardImageStepModal(
+  creationMode: string | null | undefined,
+  panelIndex: number
+): CreateFlowStepModalIntent | null {
+  if (skipsStoryboardImageGeneration(creationMode)) {
+    clearCreateFlowStepModalIntent()
+    return null
+  }
+  return requestCreateFlowStepModal('storyboard-image', panelIndex)
 }
 
 export function peekCreateFlowStepModalIntent(): CreateFlowStepModalIntent | null {

@@ -69,6 +69,7 @@ import com.aid.media.provider.ProviderUsageSupport;
 import com.aid.media.provider.ReasoningContentSanitizer;
 import com.aid.media.provider.ProviderTaskResult;
 import com.aid.media.provider.TextProviderClient;
+import com.aid.media.provider.TextFailureBillingPolicy;
 import com.aid.media.provider.TextGenerationControl;
 import com.aid.media.provider.TextModelCapabilityValidator;
 import com.aid.media.provider.TextOutputLimitResolver;
@@ -893,6 +894,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             }
             return toResponse(existing);
         }
+        TextProviderClient client = resolveTextClient(request.getModelName(), modelConfig);
+        client.validateProviderConfiguration(modelConfig, request);
         // 四维并发准入（全局/用户/模型/供应商）：用规范模型编码抢占，与任务落库的 model_name 一致。
         boolean canRun = concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
         if (!canRun && com.aid.tokendance.provider.text.TokenDanceToolMessages.isToolTurn(modelConfig, request)) {
@@ -904,7 +907,6 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         task.setProjectId(request.getProjectId());
         task.setEpisodeId(request.getEpisodeId());
         task.setMediaType(MediaType.TEXT.name());
-        TextProviderClient client = resolveTextClient(request.getModelName(), modelConfig);
         task.setProtocol(client.protocol());
         task.setModelName(modelConfig.getModelCode());
         captureProviderRoute(task, modelConfig);
@@ -988,6 +990,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             return;
         }
         TextProviderClient client = resolveTextClient(request.getModelName(), modelConfig);
+        client.validateProviderConfiguration(modelConfig, request);
         client.validateRequest(modelConfig, request);
         boolean toolTurn = com.aid.tokendance.provider.text.TokenDanceToolMessages.isToolTurn(modelConfig, request);
         if (toolTurn && !sink.supportsToolMessages()) throw new ServiceException("当前入口不支持工具");
@@ -1355,7 +1358,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         } catch (Exception ex) {
             log.error("文本流式编排失败, taskId={}, errorType={}", task.getId(),
                     ex.getClass().getSimpleName());
-            if (!TokenDanceResponseMapper.isConfirmedRejection(task.getProtocol(), task.getErrorDetailJson())) {
+            String evidenceSnapshot = TextFailureBillingPolicy.snapshotFrom(ex);
+            if (evidenceSnapshot != null) {
+                task.setErrorDetailJson(evidenceSnapshot);
+            } else if (TaskErrorSnapshot.read(task.getErrorDetailJson()) == null) {
                 task.setErrorDetailJson(TaskErrorSnapshot.write(ErrorNormalizer.normalize(
                         String.valueOf(task.getId()), null, task.getModelName(), ex)));
             }
@@ -1507,7 +1513,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
      */
     private boolean finishTextStreamTerminal(AidMediaTask task, String expectedStatus,
                                              boolean businessSucceeded, Map<String, Object> usage) {
-        task.setErrorDetailJson(TokenDanceResponseMapper.withObservedUsage(task.getErrorDetailJson(), usage));
+        task.setErrorDetailJson(TextFailureBillingPolicy.withObservedUsage(task.getErrorDetailJson(), usage));
         return Boolean.TRUE.equals(requiresNewTxTemplate.execute(status -> {
             LambdaUpdateWrapper<AidMediaTask> cas = new LambdaUpdateWrapper<>();
             cas.eq(AidMediaTask::getId, task.getId());
@@ -1531,9 +1537,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 }
                 billingWon = true;
             } else {
-                boolean providerCallStarted = task.getUpstreamAcceptTime() != null;
-                boolean settleProviderCall = shouldSettleTextProviderCall(task, businessSucceeded,
-                        hasProviderUsage, providerCallStarted, isConfirmedTokenDanceRejection(task, usage));
+                boolean settleProviderCall = TextFailureBillingPolicy.shouldSettle(
+                        businessSucceeded, task.getUpstreamAcceptTime() != null,
+                        task.getProtocol(), task.getErrorDetailJson(), usage);
                 billingWon = settleProviderCall
                         ? billingFacadeService.settleBilling(task, usage)
                         : billingFacadeService.refundBilling(task);
@@ -2036,7 +2042,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         }
         task.setProviderTaskId(submitResult.getProviderTaskId());
         if (TaskErrorSnapshot.read(submitResult.getErrorDetailJson()) != null) {
-            task.setErrorDetailJson(TokenDanceResponseMapper.withObservedUsage(submitResult.getErrorDetailJson(), submitResult.getUsage()));
+            task.setErrorDetailJson(TextFailureBillingPolicy.withObservedUsage(
+                    submitResult.getErrorDetailJson(), submitResult.getUsage()));
         }
         task.setResponseJson(submitResult.getRawResponse());
         // 3a) Base64 直出模式：provider 在内存中解码并上传 OSS，只写 ossUrl，Base64 绝不落库，
@@ -2149,7 +2156,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
 
     /** 文本调用失败保守结算；未产出可用正文、未发出请求或明确拒绝时退款。 */
     private boolean closeFailedSubmitBilling(AidMediaTask task, Map<String, Object> usage) {
-        task.setErrorDetailJson(TokenDanceResponseMapper.withObservedUsage(task.getErrorDetailJson(), usage));
+        task.setErrorDetailJson(TextFailureBillingPolicy.withObservedUsage(task.getErrorDetailJson(), usage));
         boolean textTask = MediaType.TEXT.name().equals(task.getMediaType());
         boolean hasProviderUsage = ProviderUsageSupport.hasAnyProviderUsage(usage);
         if (textTask && task.getBillingStatus() == null) {
@@ -2159,9 +2166,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             releaseConcurrency(task);
             return true;
         }
-        boolean settleProviderCall = textTask && shouldSettleTextProviderCall(task, false,
-                hasProviderUsage, task.getUpstreamAcceptTime() != null,
-                isConfirmedTokenDanceRejection(task, usage));
+        boolean settleProviderCall = textTask && TextFailureBillingPolicy.shouldSettle(
+                false, task.getUpstreamAcceptTime() != null,
+                task.getProtocol(), task.getErrorDetailJson(), usage);
         boolean billingWon = settleProviderCall
                 ? billingFacadeService.settleBilling(task, usage)
                 : billingFacadeService.refundBilling(task);
@@ -2195,24 +2202,6 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         if (MediaType.TEXT.name().equals(task.getMediaType())) {
             task.setErrorDetailJson(TaskErrorSnapshot.write(TaskSuccessValidator.validateText(null)));
         }
-    }
-
-    private boolean isResultInvalid(AidMediaTask task) {
-        TaskErrorResult error = TaskErrorSnapshot.read(task.getErrorDetailJson());
-        return error != null && TaskErrorCode.RESULT_INVALID.name().equals(error.getErrorCode());
-    }
-
-    private boolean shouldSettleTextProviderCall(AidMediaTask task, boolean businessSucceeded,
-                                                  boolean hasProviderUsage, boolean providerCallStarted,
-                                                  boolean confirmedRejection) {
-        return businessSucceeded || (!isResultInvalid(task)
-                && (hasProviderUsage || (providerCallStarted && !confirmedRejection)));
-    }
-
-    /** 仅官方恢复标记确认的拒绝且没有任何实际用量时，不能按预扣上限收费。 */
-    private boolean isConfirmedTokenDanceRejection(AidMediaTask task, Map<String, Object> usage) {
-        if (ProviderUsageSupport.hasAnyProviderUsage(usage)) return false;
-        return TokenDanceResponseMapper.isConfirmedRejection(task.getProtocol(), task.getErrorDetailJson());
     }
 
     /**
@@ -4273,6 +4262,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                         : JSONUtil.toBean(task.getRequestJson(), MediaTextGenerateRequest.class);
                 TextProviderClient client = resolveTextClient(textReq.getModelName(), modelConfig);
                 TextGenerationControl.normalize(textReq, false);
+                client.validateProviderConfiguration(modelConfig, textReq);
+                client.validateRequest(modelConfig, textReq);
                 boolean useNonStream = !TextGenerationControl.isStreaming(textReq);
                 log.info("排队拉起文本任务: taskId={}, mode={}", task.getId(),
                         useNonStream ? "NON_STREAM" : "STREAM");
@@ -4346,7 +4337,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                     task.getId(), task.getModelName(), submitElapsedMs, ex);
             }
             task.setStatus(MediaTaskStatus.FAILED.name());
-            if (!TokenDanceResponseMapper.isConfirmedRejection(task.getProtocol(), task.getErrorDetailJson())) {
+            String evidenceSnapshot = textTask ? TextFailureBillingPolicy.snapshotFrom(ex) : null;
+            if (evidenceSnapshot != null) {
+                task.setErrorDetailJson(evidenceSnapshot);
+            } else if (TaskErrorSnapshot.read(task.getErrorDetailJson()) == null) {
                 task.setErrorDetailJson(TaskErrorSnapshot.write(ErrorNormalizer.normalize(
                         String.valueOf(task.getId()), null, task.getModelName(), ex)));
             }
@@ -4354,11 +4348,12 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                     ? ProviderErrorSanitizer.safeMessage(ex.getMessage(), "文本提交失败")
                     : StringUtils.defaultIfBlank(ex.getMessage(), "提交失败"));
             Map<String, Object> failedUsage = submitResult == null ? null : submitResult.getUsage();
-            task.setErrorDetailJson(TokenDanceResponseMapper.withObservedUsage(task.getErrorDetailJson(), failedUsage));
+            task.setErrorDetailJson(TextFailureBillingPolicy.withObservedUsage(
+                    task.getErrorDetailJson(), failedUsage));
             boolean hasProviderUsage = ProviderUsageSupport.hasAnyProviderUsage(failedUsage);
-            boolean settleProviderCall = textTask
-                    && (hasProviderUsage || (task.getUpstreamAcceptTime() != null
-                            && !isConfirmedTokenDanceRejection(task, failedUsage)));
+            boolean settleProviderCall = textTask && TextFailureBillingPolicy.shouldSettle(
+                    false, task.getUpstreamAcceptTime() != null,
+                    task.getProtocol(), task.getErrorDetailJson(), failedUsage);
             // 账务收口与失败回写放进同一个 REQUIRES_NEW，避免和上层事务形成行锁互等。
             try {
                 requiresNewTxTemplate.executeWithoutResult(s -> {

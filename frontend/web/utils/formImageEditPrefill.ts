@@ -64,3 +64,25 @@ export function resolveDialogueToolbarSourceImages(
   const title = rawTitle.trim()
   return [{ url, ...(title ? { title } : {}) }]
 }
+
+export interface FormImageDialoguePrefillDecisionInput {
+  modalOpen: boolean
+  preserveComposer: boolean
+  selectionChanged: boolean
+  modalJustOpened: boolean
+  currentInstructionPlain: string
+  incomingPromptText: string
+}
+
+/**
+ * 对话作图输入只在打开弹窗/用户换图时回填。
+ * 生图完成后聚焦新图、或列表刷新替换当前图时，不得清空用户刚提交的修改要求。
+ */
+export function shouldApplyFormImageDialoguePrefill(
+  input: FormImageDialoguePrefillDecisionInput
+): boolean {
+  if (!input.modalOpen) return false
+  if (input.preserveComposer) return false
+  if (input.modalJustOpened || input.selectionChanged) return true
+  return !input.currentInstructionPlain.trim() && Boolean(input.incomingPromptText.trim())
+}

@@ -10,7 +10,7 @@ followStoryboardEditImageTask,
 runStoryboardEditImageTask
 } from '~/composables/useStoryboardEditImageTask'
 import { isStoryboardImageTaskOngoing } from '~/composables/useStoryboardImageGenerateTask'
-import { htmlToPlainText } from '~/utils/htmlPlain'
+import { storyboardPromptHtmlToPlain } from '~/utils/storyboardPromptAssetRef'
 import { modalGenSessionScopeFromScopeKey } from '~/utils/modalGenSessionScope'
 import {
 clearModalImageGenSession,
@@ -98,7 +98,7 @@ export function useStoryboardModalDialogue(
       return
     }
 
-    const prompt = htmlToPlainText(ctx.dialogueInstructionHtml.get() || '').trim()
+    const prompt = storyboardPromptHtmlToPlain(ctx.dialogueInstructionHtml.get() || '').trim()
     if (!prompt) {
       message.warning('请输入修改要求')
       return

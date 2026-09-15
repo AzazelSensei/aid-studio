@@ -34,8 +34,7 @@ import { ShimmerImage } from '~/components/common/ShimmerImage'
 import { HistoryRecordWrap } from '~/components/common/HistoryRecordWrap'
 import { EllipsisTooltip } from '~/components/common/EllipsisTooltip'
 import { BillingQuoteConfirm } from '~/components/common/BillingQuoteConfirm'
-import { BillingQuoteHint } from '~/components/common/BillingQuoteHint'
-import { ModelBillingRules } from '~/components/common/ModelBillingRules'
+import { SubmitAreaBilling } from '~/components/common/SubmitAreaBilling'
 import { useBillingQuote } from '~/hooks/useBillingQuote'
 import { SceneSettingModal } from './SceneSettingModal'
 import { resolveSettingEditBlockedTooltip } from './edit-scene-image/settingEditPermission'
@@ -54,7 +53,7 @@ import { FORM_IMAGE_REFERENCE_LIMIT } from '~/utils/formImageEditPrefill'
 import { shouldShowAssetImageRegenerateAction } from '~/utils/assetImageActionMode'
 import { assetUrl } from '~/utils/assetUrl'
 import { isFormIdUnderActiveStep3FormImageTask } from '~/utils/step3FormImageTaskRegistry'
-import { htmlToPlainText } from '~/utils/htmlPlain'
+import { storyboardPromptHtmlToPlain } from '~/utils/storyboardPromptAssetRef'
 import type { BillingQuoteRequest } from '~/types/business-api'
 import {
   useEditSceneImageModalController
@@ -150,7 +149,7 @@ export function EditSceneImageModal(props: EditSceneImageModalProps) {
   )
   const quoteRequest = useMemo<BillingQuoteRequest | null>(() => {
     if (!props.open) return null
-    const prompt = htmlToPlainText(c.dialogueInstructionHtml.value || '').trim()
+    const prompt = storyboardPromptHtmlToPlain(c.dialogueInstructionHtml.value || '').trim()
     const modelCode = selectedDialogueModelCode
     if (!modelCode) return null
     const referenceImages = c.dialogueSourceImages.value
@@ -771,19 +770,14 @@ export function EditSceneImageModal(props: EditSceneImageModalProps) {
                       </div>
                     </div>
                     <div className="scene-config-footer">
-                      {quoteModel?.billing && (!quoteRequest || generationQuote.error) ? (
-                        <div className="billing-quote-rule-preview">
-                          <span className="billing-quote-rule-preview__label">当前价格档位</span>
-                          <ModelBillingRules billing={quoteModel.billing} maxRules={1} />
-                        </div>
-                      ) : null}
-                      <BillingQuoteHint
+                      <SubmitAreaBilling
+                        modelSelected={quoteModelSelected}
+                        billing={quoteModel?.billing}
+                        hasQuoteRequest={Boolean(quoteRequest)}
                         quote={generationQuote.quote}
                         loading={generationQuote.loading}
                         error={generationQuote.error}
-                        active={quoteModelSelected}
                         idleText={quoteIdleText}
-                        className="billing-quote-hint--submit"
                       />
                       <Button
                         type="primary"
