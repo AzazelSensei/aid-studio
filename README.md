@@ -24,6 +24,8 @@ AID 是一套面向 **AI 漫剧、AI 电影、AI 漫画** 的开源内容生产�
 
 部署、模型配置、二次开发或创作流程接入遇到问题，可以扫码加入交流群。欢迎提交 Issue，也欢迎分享部署经验、模型适配与创作案例。
 
+<p align="center"><strong><span style="color: #d93025;">本群仅仅为开源交流、技术支持群，无广告，无任何隐形消费。</span></strong></p>
+
 <p align="center">
   <a href="references/community-qr.png">
     <img src="references/community-qr.png" alt="AID 开源交流群二维码" width="220">
