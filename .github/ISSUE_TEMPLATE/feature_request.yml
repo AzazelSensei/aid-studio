@@ -1,0 +1,37 @@
+name: Feature request / 功能建议
+description: Explain a user need and proposed outcome / 描述使用需求与期望结果
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing requests first. 中文与英文建议均可；请描述实际场景，勿附私人作品或凭证。
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 使用中遇到的问题
+      description: Who needs this, and what are they trying to accomplish? / 谁需要这个功能，希望完成什么？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed result / 期望结果
+      description: Describe the workflow and how success can be verified / 描述操作流程与验收方式。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds / 替代方案
+  - type: textarea
+    id: references
+    attributes:
+      label: Public references / 公开参考资料
+      description: For model integrations, link official API documentation; never provide keys / 模型接入请提供官方文档，不提供密钥。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting / 提交前确认
+      options:
+        - label: I searched existing requests and removed sensitive information. / 已搜索已有建议并移除敏感信息。
+          required: true

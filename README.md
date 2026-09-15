@@ -1,39 +1,45 @@
-# AID — 开源 AI 漫剧 · AI 电影 · AI 漫画创作平台
+# AID — AI Video, Short Drama & Comic Creation
+
+**开源 AI 漫剧 · AI 电影 · AI 漫画创作平台**
+
+**简体中文** | [English](README.en.md)
+
+Self-hosted AI video and comic production: script writing, storyboarding, image/video generation and dubbing in one project workflow.
 
 <p>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Java-17-orange.svg" alt="Java">
   <img src="https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg" alt="Spring Boot">
-  <img src="https://img.shields.io/badge/MySQL-5.7%2B-4479A1.svg" alt="MySQL">
+  <img src="https://img.shields.io/badge/MySQL-5.7-4479A1.svg" alt="MySQL">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5-red.svg" alt="MyBatis-Plus">
 </p>
 
-<h2 align="center">🌐 官方入口</h2>
 <p align="center">
-  <a href="https://www.aidstudio.com.cn/"><strong>官方运营站：https://www.aidstudio.com.cn/</strong></a>
+  <a href="https://www.aidstudio.com.cn/"><strong>在线体验</strong></a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc"><strong>📘 部署与使用教程</strong></a><br>
-  在线体验 AID，了解 AI 漫剧、AI 电影、AI 漫画三大创作方向及官方运营服务。
+  <a href="#快速开始"><strong>开始部署</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc"><strong>使用教程</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/gzxx-2025/aid-server/releases"><strong>版本发布</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="SUPPORT.md"><strong>获取帮助</strong></a>
 </p>
 
 AID 是一套面向 **AI 漫剧、AI 电影、AI 漫画** 的开源内容生产平台，覆盖 **故事与剧本 → 分集 → 角色/道具/场景 → 分镜 → 图片 → 视频 → 配音 → 成片** 的完整工作流，并提供多 AI 厂商编排、任务调度、计费支付、运营管理、生产部署和在线升级能力。
 
-本仓库是 AID 的**统一公开源码仓（aid-server）**和部署发布入口。服务端位于仓库根目录，运营管理端位于 `frontend/admin`，用户创作端位于 `frontend/web`；公开版本清单、一键部署脚本、增量 SQL 和独立升级器也由本仓库提供。一个版本只对应一个仓库标签，从源头避免三端版本不一致。
-
-## 交流与反馈
-
-部署、模型配置、二次开发或创作流程接入遇到问题，可以扫码加入交流群。欢迎提交 Issue，也欢迎分享部署经验、模型适配与创作案例。
-
 <p align="center">
-  <img src="https://img.shields.io/badge/交流群说明-%E6%9C%AC%E7%BE%A4%E4%BB%85%E4%BB%85%E4%B8%BA%E5%BC%80%E6%BA%90%E4%BA%A4%E6%B5%81%E3%80%81%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81%E7%BE%A4%EF%BC%8C%E6%97%A0%E5%B9%BF%E5%91%8A%EF%BC%8C%E6%97%A0%E4%BB%BB%E4%BD%95%E9%9A%90%E5%BD%A2%E6%B6%88%E8%B4%B9%E3%80%82-d93025?style=for-the-badge" alt="本群仅仅为开源交流、技术支持群，无广告，无任何隐形消费。">
-</p>
-
-<p align="center">
-  <a href="references/community-qr.png">
-    <img src="references/community-qr.png" alt="AID 开源交流群二维码" width="220">
+  <a href="#产品预览">
+    <img src="references/web/7.png" alt="AID 分镜工作台：剧本、角色场景参考、分镜图与视频生成流程" width="100%">
   </a><br>
-  <sub>如果二维码未直接显示，可点击二维码区域查看原图。</sub>
+  <sub>分镜工作台实拍 · <a href="#产品预览">查看流程画布、素材、视频与配音截图</a></sub>
 </p>
+
+- **完整创作流程**：剧本、角色/道具/场景、分镜、图片、视频和配音围绕同一项目组织。
+- **自行部署与管理**：Docker / systemd 安装，配套用户、模型、任务和升级管理。
+- **多模型接入**：文本、图片、视频、语音统一配置；可用能力以启用的模型与权限为准。
+
+> 软件源码按 MIT 协议提供。AI 生成需要配置相应供应商的 API 凭证；模型调用、服务器和存储可能产生费用。首次体验建议从一个项目、一个分镜开始。
 
 ## AID 用来做什么
 
@@ -71,6 +77,8 @@ AID 将不同内容形态分别组织为清晰的创作方向。每个方向都�
 
 ## 公开源码目录
 
+公开仓 `aid-server` 是 AID 的统一源码与部署发布入口，包含服务端、管理端、用户创作端、版本清单、部署脚本、增量 SQL 和独立升级器。三端使用同一个版本标签。
+
 公开源码统一发布到 [Gitee aid-server](https://gitee.com/gzxx-2025/aid-server) 和 [GitHub aid-server](https://github.com/gzxx-2025/aid-server)，两个平台使用相同提交和标签。
 
 | 路径 | 内容 |
@@ -79,7 +87,7 @@ AID 将不同内容形态分别组织为清晰的创作方向。每个方向都�
 | `frontend/admin/` | 运营管理端（React） |
 | `frontend/web/` | 用户创作端 |
 
-`v1.0.0` 及更早版本仍保留原三仓标签和 Release，供既有环境兼容、历史源码获取与人工恢复使用；从 `v1.0.1` 起，新版本统一使用本仓库的同名标签。源码构建版本的一键升级失败会自动恢复升级前备份，但不提供跨版本的一键源码回退入口。
+从 `v1.0.1` 起，新版本统一使用本仓库的同名标签。历史版本的获取与迁移请先查阅对应发布说明；升级、备份与可用回退范围见[部署指南](deploy/README.md)。
 
 ## 官方资产包
 
@@ -104,7 +112,7 @@ AID 的初始化数据会引用一组官方媒体资源，用于首次部署后�
 **平台能力**
 
 - 多厂商编排：文本、图片、视频和语音模型通过统一 Provider 接入，模型能力、参考图数量、分辨率、时长和比例均可配置
-- 官方 API 统一网关：一个地址 + 一个 Key 替代全部厂商配置，支持按模型设置例外
+- API 网关配置：可按兼容协议配置模型访问地址与凭证，支持按模型设置例外
 - 统一任务系统：生成任务排队、并发调度、进度推送、失败重试、补偿和结果回收
 - 视觉一致性：角色、道具、场景资产复用，官方/自定义风格与项目风格快照，参考图按模型能力安全编排
 - 计费体系：按模型/SKU 计费、余额冻结与结算、充值套餐、支付宝/微信支付
@@ -160,15 +168,17 @@ aid-server（Maven 多模块单体）
 推荐在一台全新的 64 位 Linux 服务器上使用统一安装器。下面的命令会把脚本保存到 `/root/aid-install.sh`，优先从 Gitee 下载，失败后自动切换 GitHub；下载成功后才执行脚本，不会把网络响应直接通过管道交给 Shell。
 
 ```bash
-cd /root && if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; elif command -v wget >/dev/null 2>&1; then wget -O /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || wget -O /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; else echo '请先安装 curl 或 wget'; exit 1; fi && sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=beta bash /root/aid-install.sh install
+cd /root && if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || curl -fL --retry 3 --connect-timeout 15 -o /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; elif command -v wget >/dev/null 2>&1; then wget -O /root/aid-install.sh https://gitee.com/gzxx-2025/aid-server/raw/master/deploy/aid.sh || wget -O /root/aid-install.sh https://raw.githubusercontent.com/gzxx-2025/aid-server/master/deploy/aid.sh; else echo '请先安装 curl 或 wget'; exit 1; fi && sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=auto bash /root/aid-install.sh install
 ```
 
 `install` 是智能入口：未部署时默认进入 Docker 首次安装，已经部署时转入更新检查。也可以明确选择部署方式：
 
 ```bash
-sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=beta bash /root/aid-install.sh install-docker
-sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=beta bash /root/aid-install.sh install-manual
+sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=auto bash /root/aid-install.sh install-docker
+sudo env AID_REMOTE_BOOTSTRAP=1 AID_RELEASE_CHANNEL=auto bash /root/aid-install.sh install-manual
 ```
+
+`auto` 优先选择正式版；没有可安装正式版时才回退到 Beta 并提示。需要固定正式渠道时改为 `stable`，明确测试预发布版本时才使用 `beta`。
 
 | 部署方式 | 适合场景 | 配置真源 | 运行方式 |
 |---------|---------|---------|---------|
@@ -265,13 +275,18 @@ https://admin.example.com/Ab12Cd34Ef56
 
 ### 配置 AI 厂商
 
-运营管理端和用户创作端源码分别位于本仓库的 [`frontend/admin`](frontend/admin) 与 [`frontend/web`](frontend/web)。启动后在后台「AI模型配置」中配置至少一家厂商的密钥（或启用官方 API 统一网关）即可开始创作。
+公开仓库中的管理端和用户创作端源码分别位于 [`frontend/admin`](https://github.com/gzxx-2025/aid-server/tree/main/frontend/admin) 与 [`frontend/web`](https://github.com/gzxx-2025/aid-server/tree/main/frontend/web)。启动后在后台「AI模型配置」中配置所需厂商的凭证、模型能力与计费规则，再启用模型。完成视频与配音流程时，还需配置对应的视频与语音模型。
 
 ## 文档导航
 
 | 文档 | 说明 |
 |------|------|
 | [部署指南](deploy/README.md) | Docker / systemd 部署、配置项、HTTPS、中间件、升级、回退与卸载 |
+| [English guide](README.en.md) | English overview, installation, first project and maintenance |
+| [贡献指南](CONTRIBUTING.md) | 问题报告、改动范围、开发验证与 PR 提交 |
+| [获取帮助](SUPPORT.md) | 使用、部署和模型配置问题的反馈入口 |
+| [安全报告](SECURITY.md) | 私密报告漏洞，避免公开敏感细节 |
+| [社区行为准则](CODE_OF_CONDUCT.md) | 交流与协作约定 |
 | Swagger 接口文档 | 启动后访问 `http://localhost:8080/swagger-ui.html`（生产环境默认关闭） |
 
 ## 在线升级
@@ -356,15 +371,32 @@ https://admin.example.com/Ab12Cd34Ef56
 
 ## 参与贡献
 
-欢迎 Issue 与 Pull Request：
+欢迎中文或英文 Issue 与 Pull Request。先阅读[贡献指南](CONTRIBUTING.md)与[社区行为准则](CODE_OF_CONDUCT.md)，再选择适合自己的贡献：复现问题、改进文档、修复缺陷或适配公开模型协议。
 
-1. Fork 本仓库并创建特性分支
-2. 遵循仓库既有分层规范与编码约定（Controller 进 business-*，业务逻辑进 interface-main，实体与 Mapper 进 interface-system）
-3. 提交 PR 并描述变更动机与影响范围
+- [报告问题 / 提出建议](https://github.com/gzxx-2025/aid-server/issues/new/choose)
+- [查找适合首次贡献的任务](https://github.com/gzxx-2025/aid-server/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
+- [报告安全问题](SECURITY.md)
+
+如果 AID 对你有帮助，欢迎 Star 收藏，也欢迎分享有权公开的创作案例和部署经验。
+
+## 交流与反馈
+
+部署、模型配置、二次开发或创作流程接入遇到问题，可以通过[获取帮助](SUPPORT.md)中的入口反馈，或扫码加入交流群。
+
+<p align="center">
+  <img src="https://img.shields.io/badge/交流群说明-%E6%9C%AC%E7%BE%A4%E4%BB%85%E4%BB%85%E4%B8%BA%E5%BC%80%E6%BA%90%E4%BA%A4%E6%B5%81%E3%80%81%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81%E7%BE%A4%EF%BC%8C%E6%97%A0%E5%B9%BF%E5%91%8A%EF%BC%8C%E6%97%A0%E4%BB%BB%E4%BD%95%E9%9A%90%E5%BD%A2%E6%B6%88%E8%B4%B9%E3%80%82-d93025?style=for-the-badge" alt="本群仅仅为开源交流、技术支持群，无广告，无任何隐形消费。">
+</p>
+
+<p align="center">
+  <a href="references/community-qr.png">
+    <img src="references/community-qr.png" alt="AID 开源交流群二维码" width="220">
+  </a><br>
+  <sub>如果二维码未直接显示，可点击二维码区域查看原图。</sub>
+</p>
 
 ## 开源协议
 
-本项目基于 [MIT License](LICENSE) 开源，版权归光子讯息(杭州)科技有限公司所有。
+本项目基于 [MIT License](LICENSE) 开源，版权归光子讯息(杭州)科技有限公司所有。第三方归属说明见 [NOTICE](NOTICE)，原有版权与许可声明予以保留。
 
 ## 鸣谢
 

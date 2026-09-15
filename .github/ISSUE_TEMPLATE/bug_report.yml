@@ -1,0 +1,66 @@
+name: Bug report / 缺陷反馈
+description: Report a reproducible problem / 提交可复现的问题
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        中文或 English 均可。Please search existing issues first.
+        Do not include credentials, private URLs or user data. 安全漏洞请通过仓库 Security 页私密报告。
+  - type: input
+    id: version
+    attributes:
+      label: AID version or commit / 版本或提交
+      description: Include updater version for upgrade issues / 升级问题请同时注明升级器版本。
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected area / 问题位置
+      options:
+        - Creator workflow / 创作流程
+        - Models and generation / 模型与生成
+        - Admin interface / 管理后台
+        - Installation or upgrade / 安装升级
+        - Documentation / 文档
+        - Other / 其他
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: OS, CPU architecture, RAM, Docker or systemd, browser; redact private addresses / 系统、架构、内存、部署方式、浏览器，不含私有地址。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      placeholder: |
+        1. Open / 打开...
+        2. Configure / 配置...
+        3. Run / 操作...
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior / 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted logs or screenshots / 脱敏日志或截图
+      description: Minimal excerpts only; no full config files, database exports or signed media URLs / 只提供最小片段，不上传完整配置、数据库或签名媒体链接。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting / 提交前确认
+      options:
+        - label: I searched existing issues. / 已搜索现有问题。
+          required: true
+        - label: I removed secrets and personal data; this is not a public vulnerability disclosure. / 已脱敏，且此处不公开披露漏洞。
+          required: true
