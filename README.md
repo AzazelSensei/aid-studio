@@ -30,9 +30,9 @@ AID 是一套面向 **AI 漫剧、AI 电影、AI 漫画** 的开源内容生产�
 
 <p align="center">
   <a href="#产品预览">
-    <img src="references/web/7.png" alt="AID 分镜工作台：剧本、角色场景参考、分镜图与视频生成流程" width="100%">
+    <img src="references/web/2.png" alt="AID 流程画布：可视化编排剧本、素材、分镜与视频创作流程" width="100%">
   </a><br>
-  <sub>分镜工作台实拍 · <a href="#产品预览">查看流程画布、素材、视频与配音截图</a></sub>
+  <sub>流程画布实拍 · <a href="#产品预览">查看更多产品截图</a></sub>
 </p>
 
 - **完整创作流程**：剧本、角色/道具/场景、分镜、图片、视频和配音围绕同一项目组织。
@@ -297,6 +297,21 @@ https://admin.example.com/Ab12Cd34Ef56
 
 更新会进行三端编译、数据库备份和健康检查，短时间内可能明显占用 CPU、内存和磁盘 I/O。生产环境应先做异机备份并在业务低峰执行；Beta 版本建议先在测试环境验证。完整升级、SQL 与回退规则见[部署指南](deploy/README.md)。
 
+## 交流与反馈
+
+部署、模型配置、二次开发或创作流程接入遇到问题，可以通过[获取帮助](SUPPORT.md)中的入口反馈，或扫码加入交流群。
+
+<p align="center">
+  <img src="https://img.shields.io/badge/交流群说明-%E6%9C%AC%E7%BE%A4%E4%BB%85%E4%BB%85%E4%B8%BA%E5%BC%80%E6%BA%90%E4%BA%A4%E6%B5%81%E3%80%81%E6%8A%80%E6%94%AF%E6%8C%81%E7%BE%A4%EF%BC%8C%E6%97%A0%E5%B9%BF%E5%91%8A%EF%BC%8C%E6%97%A0%E4%BB%BB%E4%BD%95%E9%9A%90%E5%BD%A2%E6%B6%88%E8%B4%B9%E3%80%82-d93025?style=for-the-badge" alt="本群仅仅为开源交流、技术支持群，无广告，无任何隐形消费。">
+</p>
+
+<p align="center">
+  <a href="references/community-qr.png">
+    <img src="references/community-qr.png" alt="AID 开源交流群二维码" width="220">
+  </a><br>
+  <sub>如果二维码未直接显示，可点击二维码区域查看原图。</sub>
+</p>
+
 ## 产品预览
 
 > README 中的图片均使用仓库相对路径引用，可在 Gitee / GitHub 两端直接渲染；如页面加载较慢，请稍等浏览器完成图片缓存。
@@ -378,21 +393,6 @@ https://admin.example.com/Ab12Cd34Ef56
 - [报告安全问题](SECURITY.md)
 
 如果 AID 对你有帮助，欢迎 Star 收藏，也欢迎分享有权公开的创作案例和部署经验。
-
-## 交流与反馈
-
-部署、模型配置、二次开发或创作流程接入遇到问题，可以通过[获取帮助](SUPPORT.md)中的入口反馈，或扫码加入交流群。
-
-<p align="center">
-  <img src="https://img.shields.io/badge/交流群说明-%E6%9C%AC%E7%BE%A4%E4%BB%85%E4%BB%85%E4%B8%BA%E5%BC%80%E6%BA%90%E4%BA%A4%E6%B5%81%E3%80%81%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81%E7%BE%A4%EF%BC%8C%E6%97%A0%E5%B9%BF%E5%91%8A%EF%BC%8C%E6%97%A0%E4%BB%BB%E4%BD%95%E9%9A%90%E5%BD%A2%E6%B6%88%E8%B4%B9%E3%80%82-d93025?style=for-the-badge" alt="本群仅仅为开源交流、技术支持群，无广告，无任何隐形消费。">
-</p>
-
-<p align="center">
-  <a href="references/community-qr.png">
-    <img src="references/community-qr.png" alt="AID 开源交流群二维码" width="220">
-  </a><br>
-  <sub>如果二维码未直接显示，可点击二维码区域查看原图。</sub>
-</p>
 
 ## 开源协议
 
