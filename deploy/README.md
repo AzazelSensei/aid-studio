@@ -9,7 +9,7 @@
 | Docker 部署（推荐） | 绝大多数用户 | 中间件全部容器化 |
 | 手动部署 | 不使用容器或对宿主机服务有明确要求 | systemd + Nginx；本机缺失依赖按版本自动准备 |
 
-统一约定：**全部数据默认放在 `/data/aid`**——程序产物（`app/`）、受管安装器和 Docker 配置（`installer/`）、上传文件（`uploadPath/` 与私有归档 `uploadPath-private/`）、日志（`logs/`）、MySQL/Redis/RocketMQ 数据、备份（`backups/`）、本地源码构建包（`packages/`）、依赖缓存（`build-cache/`）与手动部署配置（`aid-deploy.conf`）都在这一个目录下，备份或迁移整个目录即可。
+统一约定：**`/data/aid` 是主数据根目录**——程序产物（`app/`）、受管安装器和 Docker 配置（`installer/`）、上传文件（`uploadPath/` 与私有归档 `uploadPath-private/`）、日志（`logs/`）、MySQL/Redis/RocketMQ 数据、备份（`backups/`）、本地源码构建包（`packages/`）、依赖缓存（`build-cache/`）与手动部署配置（`aid-deploy.conf`）都在这一个目录下。完整的宿主机备份或迁移还必须包含升级器配置 `/etc/aid-updater/`、升级器状态 `/var/lib/aid-updater/`，以及已配置的外部中间件或对象存储。
 
 ## 目录说明
 

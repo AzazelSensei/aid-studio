@@ -9,7 +9,7 @@ This directory holds the AID installer and related deployment files. You do not 
 | Docker (recommended) | Most users | Middleware runs in containers |
 | Manual (systemd) | No containers, or you must use host services | systemd + Nginx; missing host dependencies are prepared by version when allowed |
 
-**All data defaults to `/data/aid`**: application files (`app/`), managed installer and Docker files (`installer/`), uploads (`uploadPath/` and private archive `uploadPath-private/`), logs (`logs/`), MySQL/Redis/RocketMQ data, backups (`backups/`), local source-build packages (`packages/`), dependency cache (`build-cache/`) and the manual config file (`aid-deploy.conf`). Back up or migrate that one directory.
+**`/data/aid` is the main data root**: application files (`app/`), managed installer and Docker files (`installer/`), uploads (`uploadPath/` and private archive `uploadPath-private/`), logs (`logs/`), MySQL/Redis/RocketMQ data, backups (`backups/`), local source-build packages (`packages/`), dependency cache (`build-cache/`) and the manual config file (`aid-deploy.conf`). A complete host backup or migration must also include updater configuration in `/etc/aid-updater/`, updater state in `/var/lib/aid-updater/`, and any configured external middleware or object storage.
 
 ## Layout
 
