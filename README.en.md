@@ -1,8 +1,8 @@
-# AID — AI Video, Short Drama & Comic Creation
+# AID Studio — AI Drama & Motion Comic Creation
 
 [简体中文](README.md) | **English**
 
-**An open-source, self-hosted production platform for AI short dramas, animated comics and films.** Write scripts, organize characters and scenes, build storyboards, generate images and videos, and add voiceovers in a project-based workflow.
+**Open-source, self-hosted AI drama and motion comic creation — from scripts and storyboards to video and voiceovers, with support for films and comics.**
 
 [Live website](https://www.aidstudio.com.cn/) · [Quick start](#quick-start) · [Releases](https://github.com/gzxx-2025/aid-studio/releases) · [Help](SUPPORT.md) · [Contribute](CONTRIBUTING.md)
 
@@ -11,9 +11,28 @@
 ![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg)
 ![MySQL 5.7](https://img.shields.io/badge/MySQL-5.7-4479A1.svg)
 
-![AID storyboard workspace with scene references, generated frames and video workflow](references/web/7.png)
+![AID workflow canvas for scripts, assets, storyboards and video production](references/web/2.png)
 
-The screenshots show the Chinese interface. This guide is in English; linked usage tutorials and advanced deployment documentation are in Chinese.
+### Community chat
+
+Chinese-language open-source discussion and technical support, with no advertising or hidden charges. You can also use [GitHub Issues](https://github.com/gzxx-2025/aid-studio/issues/new/choose) in Chinese or English.
+
+<p align="center">
+  <a href="references/community-qr.png">
+    <img src="references/community-qr.png" alt="QR code for the AID open-source community chat" width="220">
+  </a><br>
+  <sub>Click the QR code to open the original image.</sub>
+</p>
+
+## At a glance
+
+- **One production workflow:** scripts, assets, storyboards, images, video and voiceovers in one project.
+- **Multiple models:** choose configured text, image, video and audio models for each task.
+- **Self-hosted:** Docker or systemd deployment with model, task and user management.
+
+[Your first project](#your-first-project) · [Installation](#quick-start) · [Product screenshots](README.md#产品预览) · [Source layout](#source-layout-and-development)
+
+The screenshots show the Chinese interface. This guide is in English. Full Docker and systemd install steps are in the [English deployment guide](deploy/README.en.md). Screen-by-screen usage tutorials remain in Chinese.
 
 ## What you can create
 
@@ -32,7 +51,23 @@ Two workflow interfaces are available: a step-by-step creation workflow and a co
 | --- | --- |
 | ![Storyboard planning](references/web/7.png) | ![Connected workflow canvas](references/web/2.png) |
 
+## Your first project
+
+On a self-hosted installation, [configure and enable the required models](#3-open-the-application-and-configure-models) first. Start with one storyboard before generating a full episode.
+
+1. Choose a creation direction and enter a short story or script.
+2. Set up one episode and a small set of characters, props and scenes.
+3. Generate or upload reference images that you are authorized to use.
+4. Create a storyboard and review its script and image before generating video.
+5. Select a configured video model and inspect its parameters and quoted cost.
+6. Add voiceovers with a configured speech model, then review the output.
+
+For an image-only comic, focus on scripts, reference assets and storyboard images. You do not need to generate video for every project. See the [usage tutorials (Chinese)](https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc) for screen-by-screen instructions.
+
 ## Features
+
+<details>
+<summary>Explore the full feature list</summary>
 
 - **Script and project management:** scripts, episodes, assets, generation records and output previews.
 - **Reusable references:** characters, props, scenes and styles to support visual consistency. Results depend on the chosen models and inputs.
@@ -44,6 +79,8 @@ Two workflow interfaces are available: a step-by-step creation workflow and a co
 - **Administration:** users, models, suppliers, task monitoring, billing, payments, storage and configuration.
 - **Self-hosted deployment:** Docker or systemd, backups, HTTPS configuration and an independent updater.
 
+</details>
+
 The source code is provided under the MIT license. AI generation requires credentials for suitable providers. Model calls, servers and storage may incur charges. Capabilities and output quality depend on the models configured by the administrator.
 
 ## Quick start
@@ -52,7 +89,7 @@ The source code is provided under the MIT license. AI generation requires creden
 
 Use a fresh 64-bit Linux server with administrator access. For an installation with local middleware and no RocketMQ, the documented minimum is **2 CPU cores, 4 GB RAM and 40 GB disk**; the recommended configuration is **4 CPU cores, 8 GB RAM and 100 GB or more disk**. Source compilation needs network access and additional temporary disk space. Installation time varies by hardware and network.
 
-Docker is the recommended deployment mode. The installer also supports systemd deployments. See the [detailed deployment guide (Chinese)](deploy/README.md) for operating-system requirements, toolchains, external databases and advanced configuration.
+Docker is the recommended deployment mode. The installer also supports systemd deployments. See the [English deployment guide](deploy/README.en.md) for install commands, config paths, first confirmation, `aid` commands, HTTPS and external MySQL/Redis/RocketMQ. The [Chinese deployment guide](deploy/README.md) is the original.
 
 ### 2. Download and review the installer
 
@@ -92,16 +129,6 @@ The installer asks you to review and confirm configuration before installing com
 
 The downloadable official media asset bundle is separate from source code and is not automatically included in installation. See [official assets](README.md#官方资产包) for availability and import instructions.
 
-## Your first project
-
-1. Choose a creation direction and enter a short story or script.
-2. Set up one episode and a small set of characters, props and scenes.
-3. Generate or upload reference images that you are authorized to use.
-4. Create a storyboard and review its script and image before generating video.
-5. Select a configured video model and inspect its parameters and quoted cost.
-6. Add voiceovers with a configured speech model, then review the output.
-
-For an image-only comic, focus on scripts, reference assets and storyboard images. You do not need to generate video for every project. See the [usage tutorials (Chinese)](https://gzxxaitdb.feishu.cn/docx/LZ5zdesEgo1z4Mxc7OWc7zTHnJc) for screen-by-screen instructions.
 
 ## Maintain your installation
 
@@ -114,8 +141,9 @@ For an image-only comic, focus on scripts, reference assets and storyboard image
 | `sudo aid backup` | Create a backup |
 | `sudo aid update` | Check and apply an update |
 | `sudo aid progress` | View update progress |
+| `sudo aid uninstall` | Stop AID; `--keep` retains data, `--purge` requires `DELETE-AID` |
 
-Back up the database, configuration and media to a separate location before upgrading. Upgrades involve source compilation, database migrations and health checks; allow a maintenance window. Recovery options depend on the release and migration. Read the [deployment and recovery guide](deploy/README.md) before upgrading or rolling back.
+Back up the database, configuration and media to a separate location before upgrading. Upgrades involve source compilation, database migrations and health checks; allow a maintenance window. Recovery options depend on the release and migration. Read the [English deployment guide](deploy/README.en.md) before upgrading or rolling back.
 
 ## Source layout and development
 
