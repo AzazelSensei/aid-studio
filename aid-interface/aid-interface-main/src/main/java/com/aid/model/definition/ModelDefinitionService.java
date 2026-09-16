@@ -182,6 +182,12 @@ public class ModelDefinitionService {
                     .eq(AidAiModel::getRealModelCode, identity).eq(AidAiModel::getDelFlag, "0")
                     .ne(model.getId() != null, AidAiModel::getId, model.getId())) > 0) fail("真实模型已存在，请为原模型添加能力或协议");
         }
+        if (current != null && model.getRealModelCode() != null) {
+            List<ModelCapabilityDefinition> stored = definitions(current.getId());
+            List<ModelCapabilityDefinition> requested = model.getCapabilities() == null ? stored : model.getCapabilities();
+            if (synchronizeInheritedUpstreamModels(current, identity, stored, requested)
+                    && model.getCapabilities() == null) model.setCapabilities(requested);
+        }
         if (model.getCapabilities() != null) {
             validate(model.getCapabilities());
             for (var alias : aliasesForModel(model.getId())) {
@@ -215,6 +221,35 @@ public class ModelDefinitionService {
                 create ? model.getCreateBy() : model.getUpdateBy());
         if (changed > 0 && model.getBusinessBindings() != null) businessBindings.replaceForModel(model.getId(),
                 model.getBusinessBindings(), create ? model.getCreateBy() : model.getUpdateBy());
+        return changed;
+    }
+
+    /** 仅同步仍跟随旧模型标识的协议；调用方显式修改的上游端点保持不变。 */
+    static boolean synchronizeInheritedUpstreamModels(AidAiModel current, String newIdentity,
+                                                        List<ModelCapabilityDefinition> stored,
+                                                        List<ModelCapabilityDefinition> requested) {
+        String oldIdentity = current.getRealModelCode() != null && !current.getRealModelCode().isBlank()
+                ? current.getRealModelCode().trim()
+                : current.getModelCode();
+        boolean changed = false;
+        for (ModelCapabilityDefinition capability : requested) {
+            if (capability.getBindings() == null) continue;
+            ModelCapabilityDefinition previous = stored.stream()
+                    .filter(item -> Objects.equals(item.getCode(), capability.getCode())).findFirst().orElse(null);
+            for (ModelProtocolBinding route : capability.getBindings()) {
+                ModelProtocolBinding priorRoute = previous == null || previous.getBindings() == null ? null
+                        : previous.getBindings().stream()
+                                .filter(item -> Objects.equals(item.getCode(), route.getCode())).findFirst().orElse(null);
+                String upstream = route.getUpstreamModel() == null ? null : route.getUpstreamModel().trim();
+                if (priorRoute != null && !Objects.equals(upstream,
+                        priorRoute.getUpstreamModel() == null ? null : priorRoute.getUpstreamModel().trim())) continue;
+                if ((Objects.equals(upstream, oldIdentity) || Objects.equals(upstream, current.getModelCode()))
+                        && !Objects.equals(upstream, newIdentity)) {
+                    route.setUpstreamModel(newIdentity);
+                    changed = true;
+                }
+            }
+        }
         return changed;
     }
 
