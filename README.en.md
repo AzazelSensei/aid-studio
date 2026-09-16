@@ -13,7 +13,7 @@
 
 ![AID storyboard workspace with scene references, generated frames and video workflow](references/web/7.png)
 
-The screenshots show the Chinese interface. This guide is in English; linked usage tutorials and advanced deployment documentation are in Chinese.
+The screenshots show the Chinese interface. This guide is in English. Full Docker and systemd install steps are in the [English deployment guide](deploy/README.en.md). Screen-by-screen usage tutorials remain in Chinese.
 
 ## What you can create
 
@@ -52,7 +52,7 @@ The source code is provided under the MIT license. AI generation requires creden
 
 Use a fresh 64-bit Linux server with administrator access. For an installation with local middleware and no RocketMQ, the documented minimum is **2 CPU cores, 4 GB RAM and 40 GB disk**; the recommended configuration is **4 CPU cores, 8 GB RAM and 100 GB or more disk**. Source compilation needs network access and additional temporary disk space. Installation time varies by hardware and network.
 
-Docker is the recommended deployment mode. The installer also supports systemd deployments. See the [detailed deployment guide (Chinese)](deploy/README.md) for operating-system requirements, toolchains, external databases and advanced configuration.
+Docker is the recommended deployment mode. The installer also supports systemd deployments. See the [English deployment guide](deploy/README.en.md) for install commands, config paths, first confirmation, `aid` commands, HTTPS and external MySQL/Redis/RocketMQ. The [Chinese deployment guide](deploy/README.md) is the original.
 
 ### 2. Download and review the installer
 
@@ -114,8 +114,9 @@ For an image-only comic, focus on scripts, reference assets and storyboard image
 | `sudo aid backup` | Create a backup |
 | `sudo aid update` | Check and apply an update |
 | `sudo aid progress` | View update progress |
+| `sudo aid uninstall` | Stop AID; `--keep` retains data, `--purge` requires `DELETE-AID` |
 
-Back up the database, configuration and media to a separate location before upgrading. Upgrades involve source compilation, database migrations and health checks; allow a maintenance window. Recovery options depend on the release and migration. Read the [deployment and recovery guide](deploy/README.md) before upgrading or rolling back.
+Back up the database, configuration and media to a separate location before upgrading. Upgrades involve source compilation, database migrations and health checks; allow a maintenance window. Recovery options depend on the release and migration. Read the [English deployment guide](deploy/README.en.md) before upgrading or rolling back.
 
 ## Source layout and development
 
