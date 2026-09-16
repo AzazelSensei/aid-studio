@@ -227,7 +227,7 @@ function createStoryboardVideoBatchGenerate() {
       return { ok: false, message: '已停止生成' }
     }
     if (videoOutcome.partial) {
-      return { ok: false, message: '部分分镜视频生成失败，可点击重新生成重试' }
+      return { ok: false, message: videoOutcome.message || '部分分镜视频生成失败，可点击重新生成重试' }
     }
     return { ok: true }
   }
@@ -458,7 +458,7 @@ function createStoryboardVideoBatchGenerate() {
         return { ok: false, message: '已停止生成' }
       }
       if (videoOutcome.partial) {
-        return { ok: false, message: '部分分镜视频生成失败，可点击重新生成重试' }
+        return { ok: false, message: videoOutcome.message || '部分分镜视频生成失败，可点击重新生成重试' }
       }
       return { ok: true }
     } finally {

@@ -28,6 +28,8 @@ type StoryboardVideoPair
 import { createStoryboardVideoTaskOwnershipOps } from '~/utils/storyboardVideoTaskOwnershipOps'
 import { resolveStoryScriptSaveContext } from '~/utils/storyScriptSaveContext'
 import {
+formatPartialFailedMessage,
+parseTaskPartialFailedData,
 parseVideoBatchSuccessItems,
 resolveVideoBatchFailedStoryboardIds
 } from '~/utils/taskPartialFailed'
@@ -229,7 +231,16 @@ export function createStoryboardVideoBatchVideoFollow(
       )
       onPanelsUpdate(working)
       getStore().setStoryboardVideoBatchProgress(videoTotal, videoTotal)
-      return { ok: true, ...(result.partial ? { partial: true } : {}) }
+      return {
+        ok: true,
+        ...(result.partial
+          ? { partial: true, message: formatPartialFailedMessage(
+              parseTaskPartialFailedData(result.data),
+              '部分分镜视频生成失败，可点击重新生成重试',
+              '可点击重新生成重试'
+            ) }
+          : {})
+      }
     } finally {
       acceptsProgressRefresh = false
       core.endBatchSseFollow()
@@ -333,6 +344,7 @@ export function createStoryboardVideoBatchVideoFollow(
     if (preferredChildIds.length) {
       let lastTaskId: number | undefined
       let anyPartial = false
+      let partialMessage: string | undefined
       const coveredStoryboardIds = new Set<number>()
       for (const childId of preferredChildIds) {
         if (state.stopRequested) {
@@ -375,13 +387,16 @@ export function createStoryboardVideoBatchVideoFollow(
             coveredStoryboardIds
           }
         }
-        if (outcome.partial) anyPartial = true
+        if (outcome.partial) {
+          anyPartial = true
+          partialMessage ||= outcome.message
+        }
       }
       return {
         ok: true,
         taskId: lastTaskId,
         coveredStoryboardIds,
-        ...(anyPartial ? { partial: true } : {})
+        ...(anyPartial ? { partial: true, message: partialMessage || '部分分镜视频生成失败，请查看任务详情' } : {})
       }
     }
 
@@ -418,7 +433,7 @@ export function createStoryboardVideoBatchVideoFollow(
         ? {
             ok: true,
             taskId: ongoingVideoId,
-            ...(outcome.partial ? { partial: true } : {})
+            ...(outcome.partial ? { partial: true, message: outcome.message } : {})
           }
         : { ok: false, message: outcome.message }
     }

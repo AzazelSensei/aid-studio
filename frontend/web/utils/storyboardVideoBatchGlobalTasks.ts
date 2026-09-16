@@ -158,7 +158,9 @@ export function createStoryboardVideoBatchGlobalTasks(
               return
             }
             core.finishVideoBatchUi(storyboardIds)
-            onDone?.({ ok: true })
+            onDone?.(videoOutcome.partial
+              ? { ok: false, message: videoOutcome.message || '部分分镜视频生成失败，请查看任务详情' }
+              : { ok: true })
             return
           }
         }
@@ -203,7 +205,7 @@ export function createStoryboardVideoBatchGlobalTasks(
           core.abortVideoBatchUi(storyboardIds)
         }
         onDone?.({
-          ok: outcome.ok,
+          ok: outcome.ok && !outcome.partial,
           message: outcome.message
         })
       })()
@@ -296,8 +298,8 @@ export function createStoryboardVideoBatchGlobalTasks(
                 }
                 core.finishVideoBatchUi(storyboardIds)
                 onDone?.({
-                  ok: true,
-                  message: promptOutcome.partial ? promptOutcome.message : undefined
+                  ok: !videoOutcome.partial,
+                  message: videoOutcome.partial ? videoOutcome.message : promptOutcome.partial ? promptOutcome.message : undefined
                 })
                 return
               }
@@ -339,7 +341,7 @@ export function createStoryboardVideoBatchGlobalTasks(
             } else {
               core.abortVideoBatchUi(storyboardIds)
             }
-            onDone?.({ ok: outcome.ok, message: outcome.message })
+            onDone?.({ ok: outcome.ok && !outcome.partial, message: outcome.message })
           } catch (e: unknown) {
             core.abortVideoBatchUi(storyboardIds)
             onDone?.({ ok: false, message: bizErr(e) })

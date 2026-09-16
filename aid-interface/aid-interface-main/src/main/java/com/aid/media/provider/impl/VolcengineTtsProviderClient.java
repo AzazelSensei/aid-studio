@@ -108,8 +108,8 @@ public class VolcengineTtsProviderClient implements AudioProviderClient {
 
         StreamParseResult parsed = parseStream(raw);
         if (StrUtil.isNotBlank(parsed.errorLine)) {
-            log.error("VolcengineTts 合成上游错误帧, code={}, message={}, model={}",
-                    parsed.errorCode, parsed.errorMessage, modelConfig.getModelCode());
+            log.error("VolcengineTts 合成上游错误帧, code={}, message={}, model={}, resourceId={}",
+                    parsed.errorCode, parsed.errorMessage, modelConfig.getModelCode(), resourceId);
             return errorResult(parsed);
         }
         if (Objects.isNull(parsed.audio) || parsed.audio.length == 0) {

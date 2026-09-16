@@ -37,7 +37,7 @@ public class SysMenuController extends BaseController
      * 获取菜单列表
      */
     @PreAuthorize("@ss.hasPermi('system:menu:list')")
-    @GetMapping("/list")
+    @GetMapping(value = "/list", produces = "application/json;charset=UTF-8")
     public AjaxResult list(SysMenu menu)
     {
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
@@ -48,7 +48,7 @@ public class SysMenuController extends BaseController
      * 根据菜单编号获取详细信息
      */
     @PreAuthorize("@ss.hasPermi('system:menu:query')")
-    @GetMapping(value = "/{menuId}")
+    @GetMapping(value = "/{menuId}", produces = "application/json;charset=UTF-8")
     public AjaxResult getInfo(@PathVariable Long menuId)
     {
         return success(menuService.selectMenuById(menuId));
@@ -57,7 +57,7 @@ public class SysMenuController extends BaseController
     /**
      * 获取菜单下拉树列表
      */
-    @GetMapping("/treeselect")
+    @GetMapping(value = "/treeselect", produces = "application/json;charset=UTF-8")
     public AjaxResult treeselect(SysMenu menu)
     {
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
@@ -67,7 +67,7 @@ public class SysMenuController extends BaseController
     /**
      * 加载对应角色菜单列表树
      */
-    @GetMapping(value = "/roleMenuTreeselect/{roleId}")
+    @GetMapping(value = "/roleMenuTreeselect/{roleId}", produces = "application/json;charset=UTF-8")
     public AjaxResult roleMenuTreeselect(@PathVariable("roleId") Long roleId)
     {
         List<SysMenu> menus = menuService.selectMenuList(getUserId());

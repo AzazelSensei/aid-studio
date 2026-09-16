@@ -3687,7 +3687,7 @@ CREATE TABLE `sys_logininfor`  (
 DROP TABLE IF EXISTS `sys_menu`;
 CREATE TABLE `sys_menu`  (
   `menu_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '菜单ID',
-  `menu_name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '菜单名称',
+  `menu_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '菜单名称',
   `parent_id` bigint(20) NULL DEFAULT 0 COMMENT '父菜单ID',
   `order_num` int(4) NULL DEFAULT 0 COMMENT '显示顺序',
   `path` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT '' COMMENT '路由地址',

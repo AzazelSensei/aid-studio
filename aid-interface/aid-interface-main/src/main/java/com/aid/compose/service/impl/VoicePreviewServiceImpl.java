@@ -7,6 +7,9 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
 
 import com.aid.common.core.redis.RedisCache;
+import com.aid.common.error.TaskErrorCode;
+import com.aid.common.error.TaskErrorResult;
+import com.aid.common.error.TaskErrorSnapshot;
 import com.aid.common.utils.SecurityUtils;
 import com.aid.compose.dto.VoicePreviewRequest;
 import com.aid.compose.dto.VoicePreviewResult;
@@ -114,8 +117,17 @@ public class VoicePreviewServiceImpl implements VoicePreviewService {
         }
         String providerTaskId = submitResult.getProviderTaskId();
         if (StrUtil.isBlank(providerTaskId)) {
-            log.error("试听提交未返回 providerTaskId, modelCode={}", modelConfig.getModelCode());
-            throw new RuntimeException("试听失败");
+            TaskErrorResult providerError = TaskErrorSnapshot.read(submitResult.getErrorDetailJson());
+            if (providerError != null) {
+                log.warn("试听上游拒绝, modelCode={}, errorCode={}",
+                        modelConfig.getModelCode(), providerError.getErrorCode());
+                if (TaskErrorCode.UPSTREAM_SERVICE_NOT_OPEN.name().equals(providerError.getErrorCode())) {
+                    throw new RuntimeException("音色服务未开通或未授权，请联系管理员");
+                }
+                throw new RuntimeException(StrUtil.blankToDefault(providerError.getUserMessage(), "试听失败，请稍后重试"));
+            }
+            log.error("试听提交缺少音频结果和 providerTaskId, modelCode={}", modelConfig.getModelCode());
+            throw new RuntimeException("试听返回结果不完整，请稍后重试");
         }
         return pollResult(client, modelConfig, providerTaskId);
     }

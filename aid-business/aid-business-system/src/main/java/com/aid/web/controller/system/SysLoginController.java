@@ -190,7 +190,7 @@ public class SysLoginController {
      *
      * @return 路由信息
      */
-    @GetMapping("getRouters")
+    @GetMapping(value = "getRouters", produces = "application/json;charset=UTF-8")
     public AjaxResult getRouters() {
         Long userId = SecurityUtils.getUserId();
         List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);

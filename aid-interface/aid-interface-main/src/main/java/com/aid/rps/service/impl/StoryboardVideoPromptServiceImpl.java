@@ -1382,7 +1382,7 @@ public class StoryboardVideoPromptServiceImpl implements IStoryboardVideoPromptS
                                 // 因此 stable slot 禁止携带本轮 count/index；实际目标集合由 messages SHA 区分。
                                 "stage=video_prompt,direction=" + direction + ",item=batch",
                                 raw -> isReplayVideoOutputValid(raw, targetList, finalUnitLabel,
-                                        direction, agentCode), executionTraceId, outputTokenCap,
+                                        direction, agentCode, styleType, styleValue), executionTraceId, outputTokenCap,
                                 helper.businessFunctionForAgent(agentCode)),
                         TextTaskExecutionRejectedException::new);
                 if (llmResp != null)
@@ -1427,6 +1427,7 @@ public class StoryboardVideoPromptServiceImpl implements IStoryboardVideoPromptS
                 AidStoryboard sb = targetList.get(i);
                 JsonNode elem = aligned.get(i);
                 String prompt = Objects.isNull(elem) ? "" : elem.path(FIELD_PROMPT).asText("");
+                prompt = normalizeMultirefGlobalStyle(prompt, direction, agentCode, styleType, styleValue);
                 if (StrUtil.isBlank(prompt) || !isVideoPromptFormatValid(prompt, direction, agentCode))
                 {
                     failCount++;
@@ -2896,8 +2897,21 @@ public class StoryboardVideoPromptServiceImpl implements IStoryboardVideoPromptS
         return result;
     }
 
+    private String normalizeMultirefGlobalStyle(String prompt, String direction, String agentCode,
+                                                String styleType, String styleValue)
+    {
+        if (!DIRECTION_MULTI.equals(direction) || !AGENT_CODE_MULTIREF.equals(agentCode)
+                || StrUtil.isBlank(prompt) || !prompt.contains("场景：") || prompt.contains("全局风格："))
+        {
+            return prompt;
+        }
+        String style = StrUtil.blankToDefault(styleValue, styleType);
+        return StrUtil.isBlank(style) ? prompt : prompt.stripTrailing() + "\n全局风格：" + style.trim();
+    }
+
     private boolean isReplayVideoOutputValid(String llmRaw, List<AidStoryboard> targetList,
-                                             String unitLabel, String direction, String agentCode)
+                                             String unitLabel, String direction, String agentCode,
+                                             String styleType, String styleValue)
     {
         List<JsonNode> elements = parseLlmOutputArray(llmRaw);
         StoryboardPromptBatchAligner.AlignmentResult alignment =
@@ -2911,6 +2925,7 @@ public class StoryboardVideoPromptServiceImpl implements IStoryboardVideoPromptS
         for (JsonNode element : alignment.elements())
         {
             String prompt = Objects.isNull(element) ? "" : element.path(FIELD_PROMPT).asText("");
+            prompt = normalizeMultirefGlobalStyle(prompt, direction, agentCode, styleType, styleValue);
             if (StrUtil.isBlank(prompt) || !isVideoPromptFormatValid(prompt, direction, agentCode)
                     || (durationRequired && element.path(FIELD_DURATION).asInt(0) <= 0))
             {

@@ -145,6 +145,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
     private static final String DEFAULT_TEXT_PROTOCOL = OpenAiCompatibleConstants.PROTOCOL_TEXT;
     // 流式 SSE 审计快照写入 aid_media_task.response_json 时的最大字符数，防止超大字段。
     private static final int TEXT_STREAM_RAW_MAX_CHARS = 100_000;
+    private static final int MEDIA_TASK_PROMPT_SUMMARY_CODE_POINTS = 4_000;
     private static final String TEXT_CANCEL_CHANNEL = "aid:media:text:cancel";
     private static final long TEXT_CANCEL_PERSISTENCE_CHECK_NANOS = TimeUnit.MILLISECONDS.toNanos(250);
     // 补偿轮询最小扫描间隔（秒）：避免刚被前端轮询的任务立刻被补偿任务重复查询。
@@ -715,7 +716,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         task.setModelName(modelConfig.getModelCode());
         captureProviderRoute(task, modelConfig);
         // prompt 复用存 ttsText，便于现有列表/日志通用展示
-        task.setPrompt(request.getTtsText());
+        task.setPrompt(limitTaskPromptSummary(request.getTtsText()));
         task.setRequestHash(requestHash);
         task.setRequestJson(requestJson);
         task.setStatus(canRun ? MediaTaskStatus.PENDING.name() : MediaTaskStatus.QUEUED.name());
@@ -3276,10 +3277,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
      */
     private String summarizeTextPromptForTask(MediaTextGenerateRequest request) {
         if (StringUtils.isNotBlank(request.getTaskPromptDigest())) {
-            return request.getTaskPromptDigest();
+            return limitTaskPromptSummary(request.getTaskPromptDigest());
         }
         if (StringUtils.isNotBlank(request.getPrompt())) {
-            return request.getPrompt();
+            return limitTaskPromptSummary(request.getPrompt());
         }
         // (system 通常承载完整智能体模板,体积可能超过 TEXT 上限)
         StringBuilder sb = new StringBuilder();
@@ -3313,7 +3314,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 sb.append("[system-only:").append(role).append("]");
             }
         }
-        return sb.toString();
+        return limitTaskPromptSummary(sb.toString());
     }
 
     /**
@@ -3324,9 +3325,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
      */
     private String summarizeImagePromptForTask(MediaImageGenerateRequest request) {
         if (StringUtils.isNotBlank(request.getTaskPromptDigest())) {
-            return request.getTaskPromptDigest();
+            return limitTaskPromptSummary(request.getTaskPromptDigest());
         }
-        return request.getPrompt();
+        return limitTaskPromptSummary(request.getPrompt());
     }
 
     /**
@@ -3334,9 +3335,21 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
      */
     private String summarizeVideoPromptForTask(MediaVideoGenerateRequest request) {
         if (StringUtils.isNotBlank(request.getTaskPromptDigest())) {
-            return request.getTaskPromptDigest();
+            return limitTaskPromptSummary(request.getTaskPromptDigest());
         }
-        return request.getPrompt();
+        return limitTaskPromptSummary(request.getPrompt());
+    }
+
+    private String limitTaskPromptSummary(String prompt) {
+        if (prompt == null) {
+            return null;
+        }
+        int codePoints = prompt.codePointCount(0, prompt.length());
+        if (codePoints <= MEDIA_TASK_PROMPT_SUMMARY_CODE_POINTS) {
+            return prompt;
+        }
+        // prompt 列仅作任务摘要；按码点截取，避免中文或表情被拆断，完整输入仍在 request_json。
+        return prompt.substring(0, prompt.offsetByCodePoints(0, MEDIA_TASK_PROMPT_SUMMARY_CODE_POINTS));
     }
 
     private AiModelConfigVo resolveTextModel(MediaTextGenerateRequest request) {

@@ -10,6 +10,8 @@ export interface TaskPartialFailedItem {
   sceneName?: string
   message?: string
   reason?: string
+  userMessage?: string
+  errorMessage?: string
   [key: string]: unknown
 }
 
@@ -236,16 +238,21 @@ export function extractSceneIdsFromPartialFailed(data?: TaskPartialFailedData | 
 
 export function formatPartialFailedMessage(
   data?: TaskPartialFailedData | null,
-  fallback?: string
+  fallback?: string,
+  action = '可点击续生'
 ): string {
   if (!data) return fallback || '部分生成失败，可续生'
   const s = data.successCount
   const f = data.failCount
   const t = data.totalCount
+  const reasons = [...new Set((data.failedItems ?? [])
+    .map((item) => String(item.userMessage || item.errorMessage || '').trim())
+    .filter(Boolean))].slice(0, 2)
+  const detail = reasons.length ? `：${reasons.join('；').slice(0, 240)}` : ''
   if (s != null && f != null && t != null) {
-    return `部分成功：${s}/${t} 已完成，${f} 项失败，可点击续生`
+    return `部分成功：${s}/${t} 已完成，${f} 项失败${detail}，${action}`
   }
-  return fallback || '部分生成失败，可续生'
+  return `${fallback || '部分生成失败，可续生'}${detail}`
 }
 
 export function taskTypeLabelForResume(ty: unknown): string {
