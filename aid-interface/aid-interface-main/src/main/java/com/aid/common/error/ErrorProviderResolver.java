@@ -88,6 +88,7 @@ public class ErrorProviderResolver
                 Wrappers.<AidAiModel>lambdaQuery()
                         .select(AidAiModel::getProviderId)
                         .eq(AidAiModel::getModelCode, modelCode)
+                        .eq(AidAiModel::getDelFlag, "0")
                         .last("LIMIT 1"),
                 false);
         if (Objects.isNull(model) || Objects.isNull(model.getProviderId()))

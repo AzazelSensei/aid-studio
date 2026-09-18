@@ -593,6 +593,7 @@ public class MediaConcurrencyLimiter {
                     Wrappers.<AidAiModel>lambdaQuery()
                             .select(AidAiModel::getModelCode, AidAiModel::getProviderId, AidAiModel::getScheduleStrategyJson)
                             .eq(AidAiModel::getModelCode, modelCode)
+                            .eq(AidAiModel::getDelFlag, "0")
                             .last("LIMIT 1"), false);
             if (model != null) {
                 providerId = model.getProviderId();

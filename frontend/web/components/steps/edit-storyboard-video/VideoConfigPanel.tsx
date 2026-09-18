@@ -35,7 +35,7 @@ const starWhiteIcon = assetUrl(starWhiteIconRaw)
 
 const PROMPT_PLACEHOLDER = '描述你想要生成的画面内容和动作,如:一个穿着红色裙子的小女孩在草地上奔跑'
 
-function buildVideoQuoteRequest(ctx: VideoModalCtx): BillingQuoteRequest | null {
+export function buildVideoQuoteRequest(ctx: VideoModalCtx): BillingQuoteRequest | null {
   if (!ctx.props().open) return null
   const storyboardId = ctx.currentStoryboardId()
   if (!storyboardId) return null
@@ -55,12 +55,12 @@ function buildVideoQuoteRequest(ctx: VideoModalCtx): BillingQuoteRequest | null 
     const images = ctx.collectReferenceImageUrls()
     const modelName = String(ctx.imageToVideoModel.value || '').trim()
     const videoPrompt = ctx.imageToVideoPromptPlain().trim()
-    if (!images.length || !modelName || !videoPrompt) return null
+    if (!modelName || !videoPrompt) return null
     return {
       quoteType: 'STORYBOARD_VIDEO_IMAGE',
       payload: {
         storyboardIds: [storyboardId],
-        images,
+        ...(images.length ? { images } : {}),
         modelName,
         videoPrompt,
         baseImageRecordId: ctx.resolveBaseImageRecordId(),

@@ -407,7 +407,10 @@ public class TokenDanceCatalogServiceImpl implements ITokenDanceCatalogService {
     }
 
     private AidAiModel existing(String modelCode) {
-        return models.getOne(Wrappers.<AidAiModel>lambdaQuery().eq(AidAiModel::getModelCode, modelCode).last("limit 1"), false);
+        return models.getOne(Wrappers.<AidAiModel>lambdaQuery()
+                .eq(AidAiModel::getModelCode, modelCode)
+                .eq(AidAiModel::getDelFlag, "0")
+                .last("limit 1"), false);
     }
 
     private AidAiModel existing(AidAiModel candidate) {

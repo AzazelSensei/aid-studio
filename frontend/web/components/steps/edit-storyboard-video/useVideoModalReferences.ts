@@ -15,13 +15,10 @@ VideoModalReferencesApi
 } from './types'
 import { createVideoModalReferenceCore } from './videoModalReferenceCore'
 
-/** 图生视频接口：参考图最多 1 张 */
-const MAX_IMAGE_TO_VIDEO_REFERENCE_COUNT = 1
-
 /** 参考图 / 多参素材桶 / 首尾帧 / 各选择弹窗回调（原 setup 素材段逻辑） */
 export function useVideoModalReferences(ctx: VideoModalCtx): void {
   /** 原 referenceImage computed（首图读写包装） */
-  const { applyDefaultStoryboardReferenceImages, cleanStoryboardScriptTabLabel, collectMultiParamAssetImages, collectReferenceImageUrls, currentPanelStoryboardImages, handleImportReference, handleMultiParamImportReference, inferMultiParamAssetType, mapMultiParamReferenceImportItem, normalizeImageToVideoReferenceItems, referenceImageGet, referenceStepTabName, resetStoryboardReferenceState, resolveBaseImageRecordId, resolveDefaultStoryboardReferenceImage, resolveSceneCoverImageUrl, setReferenceImage, storyboardScriptAssetGroups, syncResolvedPromptAssetsToImportReferences, validateImageToVideoReferenceImages, validateMultiParamReferenceMedia } = createVideoModalReferenceCore(ctx)
+  const { applyDefaultStoryboardReferenceImages, cleanStoryboardScriptTabLabel, collectReferenceImageUrls, currentPanelStoryboardImages, handleImportReference, handleMultiParamImportReference, inferMultiParamAssetType, mapMultiParamReferenceImportItem, normalizeImageToVideoReferenceItems, referenceImageGet, referenceStepTabName, resetStoryboardReferenceState, resolveBaseImageRecordId, resolveDefaultStoryboardReferenceImage, resolveSceneCoverImageUrl, setReferenceImage, storyboardScriptAssetGroups, syncResolvedPromptAssetsToImportReferences, validateImageToVideoReferenceImages } = createVideoModalReferenceCore(ctx)
   function appendMultiParamAssetImages(type: 'scene' | 'character' | 'prop' | 'other', list: any[]) {
     if (!list.length) return
     if (type === 'scene') {
@@ -386,9 +383,7 @@ export function useVideoModalReferences(ctx: VideoModalCtx): void {
     resolveDefaultStoryboardReferenceImage,
     syncResolvedPromptAssetsToImportReferences,
     collectReferenceImageUrls,
-    collectMultiParamAssetImages,
     validateImageToVideoReferenceImages,
-    validateMultiParamReferenceMedia,
     normalizeImageToVideoReferenceItems,
     resolveBaseImageRecordId,
     handleImportReference,

@@ -113,6 +113,10 @@ if source_builder_supports_explicit_mode "${old_builder}"; then
 fi
 source_builder_supports_explicit_mode "${ROOT_DIR}/deploy/build-release-from-source.sh" \
   || { echo 'FAIL: current source builder was not recognized as explicit-mode capable' >&2; exit 1; }
+[[ "$(declare -f bootstrap_source_builder)" == *'repoUrl="${base}/aid-studio.git"'* ]] \
+  || { echo 'FAIL: installer must fetch the builder from the unified public repository' >&2; exit 1; }
+grep -Fqx 'SERVER_REPO="aid-studio"' "${ROOT_DIR}/deploy/build-release-from-source.sh" \
+  || { echo 'FAIL: source builder must clone the unified public repository' >&2; exit 1; }
 
 mkdir -p "${INSTALLER_ROOT}/deploy"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "${INSTALLER_ROOT}/deploy/${SOURCE_BUILDER_NAME}"

@@ -147,30 +147,9 @@ export function createVideoModalReferenceCore(ctx: VideoModalCtx) {
       .filter(Boolean)
   }
 
-  function collectMultiParamAssetImages(): Array<{ url?: string; thumbnail?: string }> {
-    return [
-      ...ctx.sceneImages.get(),
-      ...ctx.characterImages.get(),
-      ...ctx.propImages.get(),
-      ...ctx.otherImages.get()
-    ].filter((img) => img?.url || img?.thumbnail)
-  }
-
   function validateImageToVideoReferenceImages(images: string[]): boolean {
-    if (!images.length) {
-      message.warning('请上传或选择至少一张参考图片')
-      return false
-    }
     if (images.length > MAX_IMAGE_TO_VIDEO_REFERENCE_COUNT) {
       message.warning('图生视频最多只能上传一张参考图片')
-      return false
-    }
-    return true
-  }
-
-  function validateMultiParamReferenceMedia(): boolean {
-    if (!collectMultiParamAssetImages().length && !ctx.referenceVideos.get().length) {
-      message.warning('多参生视频至少需要导入一张图片或一个参考视频')
       return false
     }
     return true
@@ -263,7 +242,6 @@ export function createVideoModalReferenceCore(ctx: VideoModalCtx) {
   return {
     applyDefaultStoryboardReferenceImages,
     cleanStoryboardScriptTabLabel,
-    collectMultiParamAssetImages,
     collectReferenceImageUrls,
     currentPanelStoryboardImages,
     handleImportReference,
@@ -281,6 +259,5 @@ export function createVideoModalReferenceCore(ctx: VideoModalCtx) {
     storyboardScriptAssetGroups,
     syncResolvedPromptAssetsToImportReferences,
     validateImageToVideoReferenceImages,
-    validateMultiParamReferenceMedia,
   }
 }

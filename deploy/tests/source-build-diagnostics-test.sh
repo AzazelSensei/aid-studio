@@ -41,7 +41,7 @@ eval "${clone_function_block}"
 
 fixture_source="${TMP_ROOT}/source-fixture"
 fixture_forge="${TMP_ROOT}/fixture-forge"
-fixture_bare="${fixture_forge}/aid-server.git"
+fixture_bare="${fixture_forge}/aid-studio.git"
 mkdir -p "${fixture_source}/deploy" "${fixture_source}/frontend/admin" \
   "${fixture_source}/frontend/web" "${fixture_forge}"
 printf '<project/>\n' > "${fixture_source}/pom.xml"
@@ -71,7 +71,7 @@ TAG=vclone-test
 SOURCE_BASE="${fixture_forge}"
 SOURCE_FORGE=gitee
 SOURCE_PROBE_OK=yes
-SERVER_REPO=aid-server
+SERVER_REPO=aid-studio
 WORK_DIR="${TMP_ROOT}/host-clone-work"
 mkdir -p "${WORK_DIR}/repos"
 required_source_paths=(
@@ -100,7 +100,7 @@ clone_tag_shortcut() {
   rm -f "$2/frontend/admin/package.json" "$2/frontend/web/package.json"
 }
 retry_output=''
-if ! retry_output="$(clone_repo aid-server "${WORK_DIR}/repos/server" \
+if ! retry_output="$(clone_repo aid-studio "${WORK_DIR}/repos/server" \
     "${required_source_paths[@]}" 2>&1)"; then
   printf '%s\n' "${retry_output}" >&2
   echo 'FAIL: same-forge explicit tag retry did not repair an incomplete worktree' >&2
@@ -142,7 +142,7 @@ eval "$(declare -f resolve_remote_tag_commit | sed '1s/resolve_remote_tag_commit
 resolve_remote_tag_commit() { return 1; }
 TAG=vclone-test
 probe_down_output=''
-if ! probe_down_output="$(clone_repo aid-server "${WORK_DIR}/repos/probe-down" \
+if ! probe_down_output="$(clone_repo aid-studio "${WORK_DIR}/repos/probe-down" \
     "${required_source_paths[@]}" 2>&1)"; then
   printf '%s\n' "${probe_down_output}" >&2
   echo 'FAIL: exact same-forge fetch was not attempted after repeated tag-probe failure' >&2
@@ -167,7 +167,7 @@ SOURCE_PROBE_OK=yes
 )
 TAG=vclone-broken
 broken_output=''
-if broken_output="$(clone_repo aid-server "${WORK_DIR}/repos/broken" \
+if broken_output="$(clone_repo aid-studio "${WORK_DIR}/repos/broken" \
     "${required_source_paths[@]}" 2>&1)"; then
   echo 'FAIL: remote tag missing a required file was accepted' >&2
   exit 1
@@ -226,16 +226,16 @@ printf '{}\n' > "${docker_repo}/frontend/admin/package.json"
 printf '{}\n' > "${docker_repo}/frontend/admin/package-lock.json"
 printf '{}\n' > "${docker_repo}/frontend/web/package.json"
 printf '{}\n' > "${docker_repo}/frontend/web/package-lock.json"
-[[ "$(resolve_remote_tag_commit 'https://example.invalid/aid-server.git')" == "${fake_tag_commit}" ]] \
+[[ "$(resolve_remote_tag_commit 'https://example.invalid/aid-studio.git')" == "${fake_tag_commit}" ]] \
   || { echo 'FAIL: Docker tag probe did not use the peeled annotated-tag commit' >&2; exit 1; }
-fetch_tag_explicitly 'https://example.invalid/aid-server.git' "${docker_repo}" \
+fetch_tag_explicitly 'https://example.invalid/aid-studio.git' "${docker_repo}" \
   || { echo 'FAIL: Docker explicit tag route rejected the expected command contract' >&2; exit 1; }
 validate_repo_checkout "${docker_repo}" "${fake_tag_commit}" \
   "${required_source_paths[@]}" >/dev/null \
   || { echo 'FAIL: Docker checkout validation did not route through alpine/git' >&2; exit 1; }
 unset -f command docker
 USE_DOCKER=no
-grep -Fq 'ls-remote --exit-code https://example.invalid/aid-server.git refs/tags/vdocker refs/tags/vdocker^{}' "${docker_log}" \
+grep -Fq 'ls-remote --exit-code https://example.invalid/aid-studio.git refs/tags/vdocker refs/tags/vdocker^{}' "${docker_log}" \
   || { echo 'FAIL: Docker route does not query both tag object and peeled commit' >&2; exit 1; }
 grep -Fq 'fetch --depth 1 --no-tags origin refs/tags/vdocker:refs/tags/vdocker' "${docker_log}" \
   || { echo 'FAIL: Docker route does not fetch the exact tag refspec' >&2; exit 1; }
@@ -289,10 +289,10 @@ grep -Fq '[ -f "$WEB_DIR/dist/public/index.html" ] && [ -f "$WEB_DIR/dist/public
   || { echo 'FAIL: source package must require the generated static index and SPA entry' >&2; exit 1; }
 grep -Fq 'cp -R "$web_output"/. "$STAGING_DIR/web-dist/"' "${builder_file}" \
   || { echo 'FAIL: generated static contents must be copied into web-dist root' >&2; exit 1; }
-grep -Fq 'try_files $uri $uri/ /200.html;' "${ROOT_DIR}/deploy/docker/nginx/web-static.conf" \
-  || { echo 'FAIL: Docker static Web must use Nuxt 200.html as SPA fallback' >&2; exit 1; }
-[[ "$(grep -Fc 'try_files \$uri \$uri/ /200.html;' "${ROOT_DIR}/deploy/aid.sh")" -eq 2 ]] \
-  || { echo 'FAIL: manual HTTP and HTTPS Web sites must use Nuxt 200.html fallback' >&2; exit 1; }
+grep -Fq 'try_files $uri $uri/ =404;' "${ROOT_DIR}/deploy/docker/nginx/web-static.conf" \
+  || { echo 'FAIL: Docker static Web must return missing routes to the gateway' >&2; exit 1; }
+[[ "$(grep -Fc 'try_files \$uri \$uri/ @aid_public_page;' "${ROOT_DIR}/deploy/aid.sh")" -eq 2 ]] \
+  || { echo 'FAIL: manual HTTP and HTTPS Web sites must route missing pages through the public-page fallback' >&2; exit 1; }
 
 # 同版本旧 SSR 缓存必须在严格校验前被识别为不兼容；补齐当前静态入口和
 # 静态容器模板后，才允许进入严格校验与复用路径。

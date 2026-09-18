@@ -37,7 +37,7 @@ PAUSED_CPU_MILLI="${AID_BUILD_PAUSED_CPU_MILLI:-50}"
 
 GITHUB_BASE="https://github.com/gzxx-2025"
 GITEE_BASE="https://gitee.com/gzxx-2025"
-SERVER_REPO="aid-server"
+SERVER_REPO="aid-studio"
 GIT_IMAGE="${AID_GIT_IMAGE:-alpine/git:2.47.2}"
 MAVEN_IMAGE="${AID_MAVEN_IMAGE:-maven:3.9.9-eclipse-temurin-17}"
 NODE_IMAGE="${AID_NODE_IMAGE:-node:22.22.0-bookworm-slim}"

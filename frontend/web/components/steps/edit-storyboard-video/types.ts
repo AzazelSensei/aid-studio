@@ -445,9 +445,7 @@ export interface VideoModalReferencesApi {
     mode: 'imageToVideo' | 'multiParam'
   ) => void
   collectReferenceImageUrls: () => string[]
-  collectMultiParamAssetImages: () => Array<{ url?: string; thumbnail?: string }>
   validateImageToVideoReferenceImages: (images: string[]) => boolean
-  validateMultiParamReferenceMedia: () => boolean
   normalizeImageToVideoReferenceItems: <T extends { url?: string; thumbnail?: string }>(items: T[]) => T[]
   resolveBaseImageRecordId: () => number | undefined
   handleImportReference: () => void

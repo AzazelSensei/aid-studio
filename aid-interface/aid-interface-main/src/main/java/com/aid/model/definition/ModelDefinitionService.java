@@ -98,7 +98,16 @@ public class ModelDefinitionService {
 
     public AidAiModelAlias alias(String code) {
         if (code == null || code.isBlank()) return null;
-        return aliases.selectOne(Wrappers.<AidAiModelAlias>lambdaQuery().eq(AidAiModelAlias::getLegacyModelCode, code));
+        AidAiModelAlias alias = aliases.selectOne(Wrappers.<AidAiModelAlias>lambdaQuery()
+                .eq(AidAiModelAlias::getLegacyModelCode, code));
+        if (alias == null) return null;
+        // 同编码重新建模后，旧别名不能继续把新请求路由到历史替代模型。
+        AidAiModel active = models.getOne(Wrappers.<AidAiModel>lambdaQuery()
+                .select(AidAiModel::getId)
+                .eq(AidAiModel::getModelCode, code)
+                .eq(AidAiModel::getDelFlag, "0")
+                .last("limit 1"), false);
+        return active != null && !Objects.equals(active.getId(), alias.getModelId()) ? null : alias;
     }
 
     public AidAiModelAlias alias(Long id) {

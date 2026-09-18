@@ -146,11 +146,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	</select>
 
 	<select id="checkPhoneUnique" parameterType="String" resultMap="SysUserResult">
-		select user_id, phonenumber from sys_user where phonenumber = #{phonenumber} limit 1
+		select user_id, phonenumber from sys_user where phonenumber = #{phonenumber} and del_flag = '0' limit 1
 	</select>
 
 	<select id="checkEmailUnique" parameterType="String" resultMap="SysUserResult">
-		select user_id, email from sys_user where email = #{email} limit 1
+		select user_id, email from sys_user where email = #{email} and del_flag = '0' limit 1
 	</select>
 
 	<!-- email/phonenumber 始终落库：有值写值，无值写 NULL（禁止依赖 DEFAULT ''，避免唯一索引撞空串） -->
@@ -236,11 +236,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  	</update>
 
 	<delete id="deleteUserById" parameterType="Long">
- 		update sys_user set del_flag = '2' where user_id = #{userId}
- 	</delete>
+		update sys_user set del_flag = '2', phonenumber = null, email = null,
+			update_by = 'system', update_time = sysdate()
+		where user_id = #{userId} and del_flag = '0'
+	</delete>
 
  	<delete id="deleteUserByIds" parameterType="Long">
- 		update sys_user set del_flag = '2' where user_id in
+		update sys_user set del_flag = '2', phonenumber = null, email = null,
+			update_by = 'system', update_time = sysdate()
+		where del_flag = '0' and user_id in
  		<foreach collection="array" item="userId" open="(" separator="," close=")">
  			#{userId}
         </foreach>

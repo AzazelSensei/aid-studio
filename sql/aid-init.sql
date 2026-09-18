@@ -8338,3 +8338,11 @@ WHERE p.provider_code = 'deepseek'
   AND JSON_VALID(b.definition_json);
 
 COMMIT;
+
+-- Positional seed INSERTs run before this schema change; only active model codes remain unique.
+ALTER TABLE `aid_ai_model`
+  ADD COLUMN `active_model_code` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci
+    GENERATED ALWAYS AS (CASE WHEN `del_flag` = '0' THEN `model_code` ELSE NULL END) VIRTUAL,
+  ADD UNIQUE INDEX `uk_aid_ai_model_active_code` (`active_model_code`),
+  ADD INDEX `idx_aid_ai_model_model_code` (`model_code`),
+  DROP INDEX `uk_aid_ai_model_model_code`;

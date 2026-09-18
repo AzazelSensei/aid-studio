@@ -4864,7 +4864,7 @@ bootstrap_source_builder() { # bootstrap_source_builder <docker|host>
     for base in https://gitee.com/gzxx-2025 https://github.com/gzxx-2025; do
       rm -rf "${tmpDir}/server"
       log "获取源码构建器 ${sourceRef}: ${base}"
-      repoUrl="${base}/aid-server.git"
+      repoUrl="${base}/aid-studio.git"
       cloned="no"
       if [[ "${sourceBuildMode}" == "docker" ]] && command -v timeout >/dev/null 2>&1; then
         if timeout 240 docker run --rm --user "$(id -u):$(id -g)" -v "${tmpDir}:/work" -w /work \

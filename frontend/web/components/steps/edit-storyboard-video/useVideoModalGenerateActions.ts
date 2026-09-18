@@ -51,7 +51,7 @@ export function useVideoModalGenerateActions(ctx: VideoModalCtx): void {
     const durationSec = Number(ctx.videoDuration.get())
     const body = {
       storyboardIds: [storyboardId],
-      images,
+      ...(images.length ? { images } : {}),
       modelName,
       videoPrompt: opts.videoPrompt?.trim() || undefined,
       baseImageRecordId: ctx.resolveBaseImageRecordId(),
@@ -89,8 +89,6 @@ export function useVideoModalGenerateActions(ctx: VideoModalCtx): void {
       message.warning('分镜ID缺失，无法发起生成')
       return
     }
-
-    if (!ctx.validateMultiParamReferenceMedia()) return
 
     const modelName = String(ctx.multiParamVideoModel.get() || '').trim()
     if (!modelName) {

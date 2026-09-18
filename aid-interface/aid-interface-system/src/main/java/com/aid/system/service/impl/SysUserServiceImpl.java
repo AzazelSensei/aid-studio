@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import com.aid.common.annotation.DataScope;
+import com.aid.common.constant.AccountCancellationConstants;
 import com.aid.common.constant.UserConstants;
 import com.aid.common.core.domain.entity.SysRole;
 import com.aid.common.core.domain.entity.SysUser;
@@ -33,6 +34,7 @@ import com.aid.core.service.ISysConfigService;
 import com.aid.system.service.ISysDeptService;
 import com.aid.core.service.ISysUserService;
 import com.aid.aid.domain.AidUserProfile;
+import com.aid.aid.service.IAccountCancellationService;
 import com.aid.aid.service.IAidUserProfileService;
 
 /**
@@ -71,6 +73,9 @@ public class SysUserServiceImpl implements ISysUserService
 
     @Autowired
     private IAidUserProfileService userProfileService;
+
+    @Autowired
+    private IAccountCancellationService accountCancellationService;
 
     /**
      * 根据条件分页查询用户列表
@@ -292,6 +297,16 @@ public class SysUserServiceImpl implements ISysUserService
     public int insertUser(SysUser user)
     {
         normalizeContactFields(user);
+        if (StrUtil.isNotBlank(user.getPhonenumber()))
+        {
+            accountCancellationService.checkRegistrationAllowed(
+                    AccountCancellationConstants.IDENTITY_PHONE, user.getPhonenumber());
+        }
+        if (StrUtil.isNotBlank(user.getEmail()))
+        {
+            accountCancellationService.checkRegistrationAllowed(
+                    AccountCancellationConstants.IDENTITY_EMAIL, user.getEmail());
+        }
         // 新增用户信息
         int rows = userMapper.insertUser(user);
         if (rows <= 0)
