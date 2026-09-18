@@ -13,6 +13,17 @@
 
 ![AID workflow canvas for scripts, assets, storyboards and video production](references/web/2.png)
 
+### Community chat
+
+Chinese-language open-source discussion and technical support, with no advertising or hidden charges. You can also use [GitHub Issues](https://github.com/gzxx-2025/aid-studio/issues/new/choose) in Chinese or English.
+
+<p align="center">
+  <a href="references/community-qr.png">
+    <img src="references/community-qr.png" alt="QR code for the AID open-source community chat" width="220">
+  </a><br>
+  <sub>Click the QR code to open the original image.</sub>
+</p>
+
 ## At a glance
 
 - **One production workflow:** scripts, assets, storyboards, images, video and voiceovers in one project.
@@ -159,6 +170,7 @@ The backend uses Java 17, Spring Boot 3.5, MyBatis-Plus, MySQL 5.7 and Redis. Ro
 - [Contributing](CONTRIBUTING.md): documentation, translations, fixes and public model integrations.
 - [Code of conduct](CODE_OF_CONDUCT.md): expectations for community participation.
 - [Security policy](SECURITY.md): report vulnerabilities privately.
+- [Community chat](README.md#交流与反馈): Chinese-language open-source discussion and technical support, with no advertising or hidden charges.
 
 If AID helps your work, consider starring the repository or sharing an authorized project example and what you learned.
 
