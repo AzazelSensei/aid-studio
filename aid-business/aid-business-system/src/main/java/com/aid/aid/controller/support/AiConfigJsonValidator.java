@@ -59,7 +59,8 @@ public final class AiConfigJsonValidator
     private static final Set<String> REFERENCE_AUDIO_PROTOCOLS =
             Set.of(VolcengineConstants.PROTOCOL_SEEDANCE_VIDEO,
                     MinimaxH3Constants.PROTOCOL_VIDEO,
-                    ConfigurableAsyncMediaConstants.PROTOCOL_VIDEO);
+                    ConfigurableAsyncMediaConstants.PROTOCOL_VIDEO,
+                    "dmc-h3-video");
 
     /** 可配置异步视频协议允许下发的音频开关字段；none 表示上游隐式处理。 */
     private static final Set<String> CONFIGURABLE_VIDEO_AUDIO_FIELDS =

@@ -639,6 +639,8 @@ public class TaskDispatchServiceImpl implements TaskDispatchService {
         // 仅清「未提交上游」的：providerTaskId 为空（NULL 或空串）。
         wrapper.and(w -> w.isNull(AidMediaTask::getProviderTaskId)
             .or().eq(AidMediaTask::getProviderTaskId, ""));
+        wrapper.and(w -> w.isNull(AidMediaTask::getProtocol)
+            .or().ne(AidMediaTask::getProtocol, "dmc-h3-video"));
         // 本地 FFmpeg 会定期刷新 updateTime；按最近活动时间排序，避免长任务长期占据扫描窗口，
         // 让真正失联的 PENDING 任务优先进入补偿。
         wrapper.orderByAsc(AidMediaTask::getUpdateTime, AidMediaTask::getId);
@@ -651,6 +653,10 @@ public class TaskDispatchServiceImpl implements TaskDispatchService {
         Date now = new Date();
         int closed = 0;
         for (AidMediaTask task : tasks) {
+            // DMC 的首次 POST 可能已受理却未返回 task_id；没有上游证据时不能自动失败退款。
+            if ("dmc-h3-video".equalsIgnoreCase(task.getProtocol())) {
+                continue;
+            }
             Date pendingSince = Objects.nonNull(task.getUpdateTime()) ? task.getUpdateTime() : task.getCreateTime();
             if (Objects.isNull(pendingSince)) {
                 continue;

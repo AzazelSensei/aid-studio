@@ -217,7 +217,7 @@ public final class ModelInputCapabilityValidator {
         }
         String size = request.getSize();
         boolean customDimensions = StrUtil.isNotBlank(size)
-                && size.trim().matches("(?i)^\\d{2,5}\\s*[*x×]\\s*\\d{2,5}$")
+                && size.trim().matches("(?i)^\\d{1,5}\\s*[*x×]\\s*\\d{1,5}$")
                 && capability != null && capability.path("allowCustomWH").asBoolean(false);
         if (StrUtil.isNotBlank(size) && !customDimensions) {
             reject(modelConfig, "parameter", "模型禁止规格档位", "模型不支持规格");

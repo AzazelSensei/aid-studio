@@ -283,14 +283,30 @@ public class BillingAmountCalculatorImpl implements BillingAmountCalculator {
 
     /** PER_IMAGE 预扣：unitPrice × expectedImageCount + 输入媒体附加费 */
     private BillingCalcResult preHoldPerImage(AiModelConfigVo modelConfig, BillingSku matchedSku,
-                                              BillingRule rule, BillingInput billingInput) {
+                                               BillingRule rule, BillingInput billingInput) {
         BigDecimal unitPrice = matchedSku.getPrice() == null ? BigDecimal.ZERO : matchedSku.getPrice();
+        Long pixelsPerUnit = matchedSku.getOutputPixelsPerUnit();
+        long outputPixels = 0L;
+        long units = 0L;
+        if (pixelsPerUnit != null) {
+            outputPixels = safeGetLong(billingInput.getParams(), "outputPixels", 0L);
+            if (pixelsPerUnit <= 0 || outputPixels <= 0 || outputPixels == Long.MAX_VALUE) {
+                return BillingCalcResult.notMatched("输出尺寸缺失或计费规则无效");
+            }
+            units = (outputPixels - 1) / pixelsPerUnit + 1;
+            unitPrice = unitPrice.multiply(BigDecimal.valueOf(units));
+        }
         int expectedImageCount = Math.max(1, safeGetInt(billingInput.getParams(), "expectedImageCount",
                 safeGetInt(billingInput.getParams(), "imageCount", 1)));
         BigDecimal baseAmount = unitPrice.multiply(BigDecimal.valueOf(expectedImageCount));
         BillingSnapshot snapshot = buildSkuSnapshot(modelConfig, matchedSku, rule, billingInput.getParams());
         snapshot.setMeterType(MeterType.PER_IMAGE.name());
         fillImageSnapshot(snapshot, unitPrice, expectedImageCount, billingInput.getParams());
+        if (pixelsPerUnit != null) {
+            snapshot.setOutputPixels(outputPixels);
+            snapshot.setOutputPixelsPerUnit(pixelsPerUnit);
+            snapshot.setOutputBillingUnits(units);
+        }
         baseAmount = addInputMediaCharge(baseAmount, rule, matchedSku, billingInput.getParams(), snapshot, modelConfig);
         snapshot.setPreHoldAmount(baseAmount);
         BigDecimal adjusted = applyMultipliersAndSnapshot(modelConfig, baseAmount, snapshot);
@@ -1486,6 +1502,15 @@ public class BillingAmountCalculatorImpl implements BillingAmountCalculator {
         }
         int result = toInt(val);
         return result > 0 ? result : defaultValue;
+    }
+
+    private long safeGetLong(Map<String, Object> params, String key, long defaultValue) {
+        if (params == null || params.get(key) == null) return defaultValue;
+        try {
+            return Long.parseLong(String.valueOf(params.get(key)));
+        } catch (NumberFormatException ex) {
+            return defaultValue;
+        }
     }
 
     /**

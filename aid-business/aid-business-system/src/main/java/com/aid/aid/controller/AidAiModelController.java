@@ -43,6 +43,9 @@ public class AidAiModelController extends BaseController
     private IAidAiModelService aidAiModelService;
 
     @Autowired
+    private com.aid.newapi.NewApiService newApiService;
+
+    @Autowired
     private com.aid.model.definition.ModelDefinitionService modelDefinitions;
 
     @Autowired
@@ -250,6 +253,10 @@ public class AidAiModelController extends BaseController
         AiConfigJsonValidator.validate(aidAiModel, resolveProviderCode(aidAiModel));
         // 并发上限层级校验：模型上限不得超过所属供应商与全局上限
         concurrencyConfigValidator.validateModelSave(aidAiModel);
+        AidAiProvider provider = aidAiProviderService.selectAidAiProviderById(aidAiModel.getProviderId());
+        if (provider != null && "NEW_API".equals(provider.getIntegrationType())) {
+            newApiService.verifyManualModel(aidAiModel);
+        }
         return toAjax(modelDefinitions.save(aidAiModel, true));
     }
 

@@ -162,7 +162,7 @@ public final class BillingInputExtractor {
             return Long.MAX_VALUE;
         }
         String normalized = size.trim().replace('×', 'x').replace('*', 'x').toUpperCase();
-        if (normalized.matches("\\d{2,5}X\\d{2,5}")) {
+        if (normalized.matches("\\d{1,5}X\\d{1,5}")) {
             String[] dimensions = normalized.split("X", 2);
             try {
                 return Math.multiplyExact(Long.parseLong(dimensions[0]), Long.parseLong(dimensions[1]));

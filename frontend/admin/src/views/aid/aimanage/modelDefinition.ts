@@ -21,6 +21,8 @@ export interface ModelParameter {
   maxDurationSeconds?: number;
   maxTotalDurationSeconds?: number;
   maxFileSizeMb?: number;
+  maxFileSizeBytes?: number;
+  clipDurationSeconds?: number;
 }
 export interface ModelRuleCondition {
   match?: 'all' | 'any';

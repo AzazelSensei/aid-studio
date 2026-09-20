@@ -299,8 +299,14 @@ public class AiModelConfigServiceImpl implements IAiModelConfigService {
                 .filter(b -> java.util.Objects.equals(b.getModelId(), config.getId())
                         && java.util.Objects.equals(b.getCapabilityCode(), config.getCapabilityCode()))
                 .findFirst().ifPresent(b -> config.setBusinessDefaultsJson(b.getDefaultsJson()));
-        if (config.getResolvedDefinition() != null) com.aid.model.definition.ModelSchemaPresentation.apply(config,
-                com.aid.model.definition.ModelSchemaPresentation.withBusinessDefaults(config.getResolvedDefinition(), config.getBusinessDefaultsJson()));
+        if (config.getResolvedDefinition() != null) {
+            var definition = com.aid.model.definition.ModelSchemaPresentation.withBusinessDefaults(
+                    config.getResolvedDefinition(), config.getBusinessDefaultsJson());
+            var route = definition.getBindings().stream()
+                    .filter(binding -> java.util.Objects.equals(binding.getCode(), config.getBindingCode()))
+                    .findFirst().orElse(null);
+            com.aid.model.definition.ModelInvocationResolver.applyResolvedPresentation(config, definition, route);
+        }
         return config;
     }
 

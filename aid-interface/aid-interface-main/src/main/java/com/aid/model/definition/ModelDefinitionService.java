@@ -61,6 +61,7 @@ public class ModelDefinitionService {
             }).toList();
             model.setStructuredCapabilities(!configured.isEmpty());
             model.setCapabilities(configured.isEmpty() ? LegacyModelDefinitionConverter.convert(model) : configured);
+            if (!configured.isEmpty()) ModelSupportOverview.apply(model, configured);
             model.setLegacyAliases(old.stream().filter(alias -> Objects.equals(alias.getModelId(), model.getId())).toList());
         }
     }
@@ -128,6 +129,7 @@ public class ModelDefinitionService {
             List<ModelCapabilityDefinition> configured = definitions(id);
             model.setStructuredCapabilities(!configured.isEmpty());
             model.setCapabilities(configured.isEmpty() ? LegacyModelDefinitionConverter.convert(model) : configured);
+            if (!configured.isEmpty()) ModelSupportOverview.apply(model, configured);
             model.setBusinessBindings(businessBindings.forModel(id));
             if (model.getBusinessBindings().isEmpty() && configured.isEmpty()) model.setBusinessBindings(businessBindings.legacyBindings(model));
         }
@@ -157,9 +159,7 @@ public class ModelDefinitionService {
         view.setGenerateMode(definition.getGenerateMode());
         view.setCapabilityJson(JSON.toJSONString(route.getCapability()));
         view.setCapabilities(configured.stream().map(item -> Objects.equals(item.getCode(), definition.getCode()) ? definition : item).toList());
-        ModelInvocationResolver.applyPresentation(view, definition.getPresentation());
-        ModelInvocationResolver.applyPresentation(view, route.getPresentation());
-        ModelSchemaPresentation.apply(view, definition);
+        ModelInvocationResolver.applyResolvedPresentation(view, definition, route);
         if (route.getBillingMode() != null) view.setBillingMode(route.getBillingMode());
         if (route.getBillingRule() != null) view.setBillingRuleJson(JSON.toJSONString(route.getBillingRule()));
         if (route.getCostCredits() != null) view.setCostCredits(route.getCostCredits());
@@ -184,6 +184,16 @@ public class ModelDefinitionService {
         Long providerId = model.getProviderId() != null ? model.getProviderId() : current == null ? null : current.getProviderId();
         String identity = model.getRealModelCode() != null ? model.getRealModelCode().trim() : current == null ? null : current.getRealModelCode();
         if (model.getRealModelCode() != null) model.setRealModelCode(identity);
+        if (current != null && model.getRealModelCode() != null
+                && !Objects.equals(current.getRealModelCode(), identity)) {
+            List<ModelCapabilityDefinition> configured = model.getCapabilities() == null
+                    ? definitions(model.getId()) : model.getCapabilities();
+            for (var capability : configured) for (var route : capability.getBindings()) {
+                if (route.getUpstreamModel() == null || Objects.equals(route.getUpstreamModel(), current.getRealModelCode()))
+                    route.setUpstreamModel(identity);
+            }
+            if (model.getCapabilities() == null && !configured.isEmpty()) model.setCapabilities(configured);
+        }
         if ((create || model.getRealModelCode() != null) && (identity == null || identity.isBlank())) fail("请填写真实模型标识");
         if (create || current != null && (!Objects.equals(current.getProviderId(), providerId) || !Objects.equals(current.getRealModelCode(), identity))) {
             if (providers.getOne(Wrappers.<AidAiProvider>lambdaQuery().eq(AidAiProvider::getId, providerId).last("FOR UPDATE")) == null) fail("供应商不存在");
@@ -225,6 +235,9 @@ public class ModelDefinitionService {
                         && !"SKU".equals(route.getBillingMode()) && (route.getCostCredits() == null || route.getCostCredits().signum() < 0)) fail("请配置能力价格");
             }
         }
+        List<ModelCapabilityDefinition> overviewDefinitions = model.getCapabilities() != null
+                ? model.getCapabilities() : current == null ? List.of() : definitions(current.getId());
+        if (!overviewDefinitions.isEmpty()) ModelSupportOverview.apply(model, overviewDefinitions);
         int changed = create ? models.insertAidAiModel(model) : models.updateAidAiModel(model);
         if (changed > 0 && model.getCapabilities() != null) replace(model.getId(), model.getCapabilities(),
                 create ? model.getCreateBy() : model.getUpdateBy());

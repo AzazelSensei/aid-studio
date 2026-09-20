@@ -357,6 +357,14 @@ CREATE TABLE `aid_ai_provider`  (
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
   `supports_callback` tinyint(1) NULL DEFAULT 0 COMMENT '是否支持回调通知',
   `schedule_strategy_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '默认调度策略JSON',
+  `provider_category` varchar(16) NULL DEFAULT NULL COMMENT '展示分类：AGGREGATOR三方聚合，OFFICIAL官方厂商',
+  `display_order` int NOT NULL DEFAULT 100 COMMENT '同类展示顺序，不参与调度',
+  `integration_type` varchar(16) NOT NULL DEFAULT 'NATIVE' COMMENT '接入方式',
+  `new_api_system_token_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '启用普通用户访问令牌',
+  `new_api_access_token` varchar(4096) NULL COMMENT '上游普通用户访问令牌',
+  `new_api_user_id` bigint NULL COMMENT '上游普通用户编号',
+  `new_api_group` varchar(128) NULL COMMENT '上游分组',
+  `new_api_token_id` bigint NULL COMMENT '上游调用令牌编号',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_provider_code`(`provider_code`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AI服务商' ROW_FORMAT = Dynamic;
@@ -364,17 +372,17 @@ CREATE TABLE `aid_ai_provider`  (
 -- ----------------------------
 -- Records of aid_ai_provider
 -- ----------------------------
-INSERT INTO `aid_ai_provider` VALUES (1,'阿里百炼','dashscope','/aid/2026/07/06/a1c2f4b38230472cb5074382afa97dcc.jpg','https://dashscope.aliyuncs.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key','https://help.aliyun.com/zh/model-studio/what-is-model-studio?spm=a2c4g.11174283.0.i0',NULL,'/api/v1/tasks/%s','0','0','2026-04-18 22:48:55','admin','2026-07-28 00:44:15','system','阿里百炼服务商',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"modelConcurrency\": 10, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"providerConcurrency\": 20, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (2,'火山方舟','volcengine','/aid/2026/07/06/b0538b7a72444c1ea45cc178d6dd3da1.jpg','https://ark.cn-beijing.volces.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://console.volcengine.com/ark','https://www.volcengine.com/docs/82379',NULL,'/api/v3/contents/generations/tasks/%s','0','0','2026-04-18 22:48:55','admin','2026-07-28 01:05:52','system','火山方舟服务商',0,'{\"dispatchMode\":\"POLL_ONLY\",\"supportsCallback\":false,\"firstPollDelaySeconds\":5,\"baseIntervalSeconds\":5,\"maxIntervalSeconds\":30,\"backoffFactor\":1.5,\"maxRetryCount\":120,\"maxLifeSeconds\":3600,\"providerConcurrency\":20,\"modelConcurrency\":10,\"maxConcurrency\":1,\"progressTimeoutSeconds\":600}');
-INSERT INTO `aid_ai_provider` VALUES (3,'即梦（火山视觉）','jimeng','/aid/2026/07/06/20147fcb2e7348c795fe6c14cf079280.jpg','https://visual.volcengineapi.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1','0','2026-04-18 22:48:55','admin','2026-07-28 00:44:15','system','即梦图片统一 Provider，独立 SigV4 鉴权，不复用方舟 Bearer',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (4,'Google Gemini','gemini','/aid/2026/06/28/780b866cf29b41269d455f6bba017ab1.png','https://generativelanguage.googleapis.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://aistudio.google.com/apikey','https://ai.google.dev/gemini-api/docs','https://ai.google.dev/gemini-api/docs/pricing',NULL,'0','0','2026-05-01 00:00:00','system','2026-07-29 00:28:33','system','Google Gemini 服务商；REST :streamGenerateContent?alt=sse；x-goog-api-key 鉴权\nhttps://generativelanguage.googleapis.com',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (6,'OpenAI','openai','/aid/2026/06/28/ae4d1a37233c454da5abe3bc6f66840b.png','https://api.openai.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.openai.com/api-keys','https://developers.openai.com/api/docs','https://developers.openai.com/api/docs/pricing',NULL,'1','0','2026-05-05 22:04:04','system','2026-07-29 00:28:33','system','OpenAI / ChatGPT 文本大模型服务商；base_url 可改为代理地址',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (9,'豆包语音合成','volcengine_tts','/aid/2026/06/28/be834b781cbd4931b6e4b358c5cc618d.jpg','https://openspeech.bytedance.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://console.volcengine.com/speech/new/setting/apikeys','https://www.volcengine.com/docs/6561/1257543','https://www.volcengine.com/docs/6561/1359370',NULL,'0','0','2026-05-10 23:04:07','system','2026-07-28 00:44:15','system','豆包语音合成 / 声音复刻统一网关；鉴权头：X-Api-App-Id / X-Api-Access-Key / X-Api-Resource-Id；异步提交 /api/v3/tts/submit + 轮询 /api/v3/tts/query',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (11,'MiniMax','minimax','/aid/2026/06/28/c00ff4fa7c5a4540bd3e0ce7757a0dc7.png','https://api.minimaxi.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.minimaxi.com/user-center/basic-information/interface-key','https://platform.minimaxi.com/docs','https://platform.minimaxi.com/docs/guides/pricing-paygo','/v2/query/video_generation/%s','1','0','2026-05-12 14:38:50','system','2026-08-10 00:00:00','system','MiniMax 全模态：TTS 保持 minimax-tts；H3 视频 V2 使用独立 minimax-h3-video 协议和官方主域',1,'{\"dispatchMode\":\"CALLBACK_FIRST\",\"supportsCallback\":true,\"callbackBaseUrl\":\"\",\"firstPollDelaySeconds\":10,\"baseIntervalSeconds\":10,\"maxIntervalSeconds\":60,\"backoffFactor\":1.5,\"maxRetryCount\":180,\"maxLifeSeconds\":7200,\"progressTimeoutSeconds\":900,\"maxConcurrency\":15}');
-INSERT INTO `aid_ai_provider` VALUES (17,'Agnes AI','agnes','/aid/2026/07/06/5960f856dcfa475ca2139e50837898f4.png','https://apihub.agnes-ai.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://apihub.agnes-ai.com','https://wiki.agnes-ai.com','https://wiki.agnes-ai.com/en/docs/pricing.md','/agnesapi?video_id=%s','0','0','2026-06-05 19:37:49','system','2026-09-09 00:00:00','system','Agnes AI OpenAI 兼容网关：文本(/v1/chat/completions) + 图片(/v1/images/generations) + 视频(/v1/videos)；视频异步轮询 /v1/videos/{task_id}',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (18,'Vidu','vidu','/aid/2026/06/28/29a1c29484e04e5393e25cc46a2dff49.jpg','https://api.vidu.cn','',NULL,'Authorization','Token ',NULL,NULL,NULL,'https://platform.vidu.cn/','https://platform.vidu.cn/docs/introduction',NULL,'/ent/v2/tasks/%s/creations','0','0','2026-06-26 11:14:34','','2026-07-28 00:44:15','system','Vidu 多模态（图片/视频）；回调优先+轮询兜底',1,'{\"dispatchMode\": \"CALLBACK_FIRST\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 1, \"maxLifeSeconds\": 3600, \"callbackBaseUrl\": \"\", \"modelConcurrency\": 10, \"supportsCallback\": true, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"providerConcurrency\": 20, \"firstPollDelaySeconds\": 10, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (20,'DeepSeek','deepseek','/aid/2026/07/17/33919808cdb2492da44d8889ff305675.jpg','https://api.deepseek.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.deepseek.com/api_keys','https://api-docs.deepseek.com/zh-cn/','https://api-docs.deepseek.com/zh-cn/quick_start/pricing',NULL,'0','0','2026-07-16 11:14:05','system','2026-07-28 00:44:15','system','DeepSeek 开放平台（OpenAI 兼容 /chat/completions，base_url 无 /v1）；api_key 待运营填写；并发上限账号粒度 flash=2500/pro=500，超限上游 429',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 5, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
-INSERT INTO `aid_ai_provider` VALUES (21,'可灵 AI','kling',NULL,'https://api-beijing.klingai.com','','','Authorization','Bearer ',NULL,NULL,NULL,'https://klingai.com/dev','https://klingai.com/document-api','https://klingai.com/document-api/pricing/base/video','/tasks?task_ids=%s','1','0',NOW(),'system',NOW(),'system','可灵 3.0 官方新版 API；默认纯轮询；API Key 使用 Bearer；启用回调前在 api_secret 填写 whsec_ Webhook Secret',0,'{"dispatchMode":"POLL_ONLY","supportsCallback":false,"firstPollDelaySeconds":10,"baseIntervalSeconds":10,"maxIntervalSeconds":60,"backoffFactor":1.5,"maxRetryCount":180,"maxLifeSeconds":7200,"progressTimeoutSeconds":900,"maxConcurrency":1}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (1,'阿里百炼','dashscope','/brand-icons/dashscope.jpg','https://dashscope.aliyuncs.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key','https://help.aliyun.com/zh/model-studio/what-is-model-studio?spm=a2c4g.11174283.0.i0',NULL,'/api/v1/tasks/%s','0','0','2026-04-18 22:48:55','admin','2026-07-28 00:44:15','system','阿里百炼服务商',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"modelConcurrency\": 10, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"providerConcurrency\": 20, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (2,'火山方舟','volcengine','/brand-icons/volcengine.jpg','https://ark.cn-beijing.volces.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://console.volcengine.com/ark','https://www.volcengine.com/docs/82379',NULL,'/api/v3/contents/generations/tasks/%s','0','0','2026-04-18 22:48:55','admin','2026-07-28 01:05:52','system','火山方舟服务商',0,'{\"dispatchMode\":\"POLL_ONLY\",\"supportsCallback\":false,\"firstPollDelaySeconds\":5,\"baseIntervalSeconds\":5,\"maxIntervalSeconds\":30,\"backoffFactor\":1.5,\"maxRetryCount\":120,\"maxLifeSeconds\":3600,\"providerConcurrency\":20,\"modelConcurrency\":10,\"maxConcurrency\":1,\"progressTimeoutSeconds\":600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (3,'即梦（火山视觉）','jimeng','/brand-icons/jimeng.jpg','https://visual.volcengineapi.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1','0','2026-04-18 22:48:55','admin','2026-07-28 00:44:15','system','即梦图片统一 Provider，独立 SigV4 鉴权，不复用方舟 Bearer',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (4,'Google Gemini','gemini','/brand-icons/gemini.png','https://generativelanguage.googleapis.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://aistudio.google.com/apikey','https://ai.google.dev/gemini-api/docs','https://ai.google.dev/gemini-api/docs/pricing',NULL,'0','0','2026-05-01 00:00:00','system','2026-07-29 00:28:33','system','Google Gemini 服务商；REST :streamGenerateContent?alt=sse；x-goog-api-key 鉴权\nhttps://generativelanguage.googleapis.com',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (6,'OpenAI','openai','/brand-icons/openai.png','https://api.openai.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.openai.com/api-keys','https://developers.openai.com/api/docs','https://developers.openai.com/api/docs/pricing',NULL,'1','0','2026-05-05 22:04:04','system','2026-07-29 00:28:33','system','OpenAI / ChatGPT 文本大模型服务商；base_url 可改为代理地址',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (9,'豆包语音合成','volcengine_tts','/brand-icons/volcengine_tts.jpg','https://openspeech.bytedance.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://console.volcengine.com/speech/new/setting/apikeys','https://www.volcengine.com/docs/6561/1257543','https://www.volcengine.com/docs/6561/1359370',NULL,'0','0','2026-05-10 23:04:07','system','2026-07-28 00:44:15','system','豆包语音合成 / 声音复刻统一网关；鉴权头：X-Api-App-Id / X-Api-Access-Key / X-Api-Resource-Id；异步提交 /api/v3/tts/submit + 轮询 /api/v3/tts/query',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (11,'MiniMax','minimax','/brand-icons/minimax.png','https://api.minimaxi.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.minimaxi.com/user-center/basic-information/interface-key','https://platform.minimaxi.com/docs','https://platform.minimaxi.com/docs/guides/pricing-paygo','/v2/query/video_generation/%s','1','0','2026-05-12 14:38:50','system','2026-08-10 00:00:00','system','MiniMax 全模态：TTS 保持 minimax-tts；H3 视频 V2 使用独立 minimax-h3-video 协议和官方主域',1,'{\"dispatchMode\":\"CALLBACK_FIRST\",\"supportsCallback\":true,\"callbackBaseUrl\":\"\",\"firstPollDelaySeconds\":10,\"baseIntervalSeconds\":10,\"maxIntervalSeconds\":60,\"backoffFactor\":1.5,\"maxRetryCount\":180,\"maxLifeSeconds\":7200,\"progressTimeoutSeconds\":900,\"maxConcurrency\":15}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (17,'Agnes AI','agnes','/brand-icons/agnes.png','https://apihub.agnes-ai.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://apihub.agnes-ai.com','https://wiki.agnes-ai.com','https://wiki.agnes-ai.com/en/docs/pricing.md','/agnesapi?video_id=%s','0','0','2026-06-05 19:37:49','system','2026-09-09 00:00:00','system','Agnes AI OpenAI 兼容网关：文本(/v1/chat/completions) + 图片(/v1/images/generations) + 视频(/v1/videos)；视频异步轮询 /v1/videos/{task_id}',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 20, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (18,'Vidu','vidu','/brand-icons/vidu.jpg','https://api.vidu.cn','',NULL,'Authorization','Token ',NULL,NULL,NULL,'https://platform.vidu.cn/','https://platform.vidu.cn/docs/introduction',NULL,'/ent/v2/tasks/%s/creations','0','0','2026-06-26 11:14:34','','2026-07-28 00:44:15','system','Vidu 多模态（图片/视频）；回调优先+轮询兜底',1,'{\"dispatchMode\": \"CALLBACK_FIRST\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 1, \"maxLifeSeconds\": 3600, \"callbackBaseUrl\": \"\", \"modelConcurrency\": 10, \"supportsCallback\": true, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"providerConcurrency\": 20, \"firstPollDelaySeconds\": 10, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (20,'DeepSeek','deepseek','/brand-icons/deepseek.jpg','https://api.deepseek.com','',NULL,'Authorization','Bearer ',NULL,NULL,NULL,'https://platform.deepseek.com/api_keys','https://api-docs.deepseek.com/zh-cn/','https://api-docs.deepseek.com/zh-cn/quick_start/pricing',NULL,'0','0','2026-07-16 11:14:05','system','2026-07-28 00:44:15','system','DeepSeek 开放平台（OpenAI 兼容 /chat/completions，base_url 无 /v1）；api_key 待运营填写；并发上限账号粒度 flash=2500/pro=500，超限上游 429',0,'{\"dispatchMode\": \"POLL_ONLY\", \"backoffFactor\": 1.5, \"maxRetryCount\": 120, \"maxConcurrency\": 5, \"maxLifeSeconds\": 3600, \"supportsCallback\": false, \"maxIntervalSeconds\": 30, \"baseIntervalSeconds\": 5, \"firstPollDelaySeconds\": 5, \"progressTimeoutSeconds\": 600}');
+INSERT INTO `aid_ai_provider` (`id`, `provider_name`, `provider_code`, `logo_url`, `base_url`, `api_key`, `api_secret`, `auth_header`, `auth_prefix`, `extra_headers`, `extra_body`, `extra_query`, `api_key_apply_url`, `official_doc_url`, `official_price_url`, `task_query_suffix`, `status`, `del_flag`, `create_time`, `create_by`, `update_time`, `update_by`, `remark`, `supports_callback`, `schedule_strategy_json`) VALUES (21,'可灵 AI','kling',NULL,'https://api-beijing.klingai.com','','','Authorization','Bearer ',NULL,NULL,NULL,'https://klingai.com/dev','https://klingai.com/document-api','https://klingai.com/document-api/pricing/base/video','/tasks?task_ids=%s','1','0',NOW(),'system',NOW(),'system','可灵 3.0 官方新版 API；默认纯轮询；API Key 使用 Bearer；启用回调前在 api_secret 填写 whsec_ Webhook Secret',0,'{"dispatchMode":"POLL_ONLY","supportsCallback":false,"firstPollDelaySeconds":10,"baseIntervalSeconds":10,"maxIntervalSeconds":60,"backoffFactor":1.5,"maxRetryCount":180,"maxLifeSeconds":7200,"progressTimeoutSeconds":900,"maxConcurrency":1}');
 -- ----------------------------
 -- Table structure for aid_ai_voice_library
 -- ----------------------------
@@ -1318,7 +1326,7 @@ INSERT INTO `aid_config` VALUES (177, 'mail', 'daily_limit', '10', '同邮箱/�
 INSERT INTO `aid_config` VALUES (182, 'captcha', 'enabled', 'false', '行为验证码总开关(true/false)', '0', 1, '2026-05-29 16:26:13', '', '', '2026-07-09 23:11:28', NULL, NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (183, 'captcha', 'type', 'RANDOM', '类型:SLIDER/ROTATE/WORD_IMAGE_CLICK/CONCAT/RANDOM', '0', 2, '2026-05-29 16:26:13', '', '', '2026-05-30 03:48:23', NULL, NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (184, 'captcha', 'protected_scenes', 'login,sendCode', '受保护场景,逗号分隔', '0', 3, '2026-05-29 16:26:13', '', '', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `aid_config` VALUES (185, 'captcha', 'background_urls', '/aid/2026/06/28/a9c3e9bf02ec4689a2ae776d15c1db16.png,/aid/2026/06/28/5320f5ec7c7847c3acd1445935060ccd.png,/aid/2026/06/28/75b8ef692fac4c2bb92968c60cf44541.png,/aid/2026/06/28/4834114240464a4495cb843955b72f78.png', '背景图CDN地址,逗号分隔;为空则不开启', '0', 4, '2026-05-29 16:26:13', '', '', '2026-06-28 21:02:47', NULL, NULL, NULL, 0);
+INSERT INTO `aid_config` VALUES (185, 'captcha', 'background_urls', '/captcha-backgrounds/1.png,/captcha-backgrounds/2.png,/captcha-backgrounds/3.png,/captcha-backgrounds/4.png', '验证码背景地址，留空时使用内置图片', '0', 4, '2026-05-29 16:26:13', '', '', '2026-06-28 21:02:47', NULL, NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (186, 'captcha', 'token_expire_seconds', '300', '二次验证token有效期(秒)', '0', 5, '2026-05-29 16:26:13', '', '', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (187, 'captcha', 'captcha_expire_seconds', '120', '验证码数据有效期(秒)', '0', 6, '2026-05-29 16:26:14', '', '', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (188, 'api_crypto', 'enabled', 'false', '接口加密总开关(true/false)；前端按 /auth/public-config 的 crypto.enabled 决定是否加密', '0', 1, '2026-05-31 19:14:24', 'admin', '', '2026-07-09 23:11:31', NULL, 1, NULL, 0);
@@ -1362,7 +1370,7 @@ INSERT INTO `aid_config` VALUES (263, 'login_policy', 'max_online_count', '3', '
 INSERT INTO `aid_config` VALUES (264, 'admin_entry', 'enabled', 'false', '是否启用后台安全登录入口(true/false)', '0', 1, '2026-06-28 18:23:24', '', '', '2026-06-28 19:09:17', '开启后仅 站点/<access_code> 可进入后台登录页', NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (265, 'admin_entry', 'access_code', '', '后台登录访问码(安装时生成12位随机值)', '0', 2, '2026-06-28 18:23:24', '', '', '2026-06-28 19:09:17', '首次部署由安装器生成随机访问码；登录后可在「全局业务配置→登录与认证→后台登录入口」重新生成', NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (266, 'admin_entry', 'rate_limit_per_min', '10', '单IP每分钟尝试次数(<=0不限流)', '0', 3, '2026-06-28 18:59:20', '', '', '2026-06-28 19:09:18', '后台登录与访问码校验的单IP每分钟限流阈值，可动态调整', NULL, NULL, 0);
-INSERT INTO `aid_config` VALUES (267, 'default_avatar', 'urls', '/aid/2026/06/28/8d5e6414399e4fd3a66b44342ee6d421.png,/aid/2026/06/28/42de0f9179f54330bd5e2ce005c061cd.png,/aid/2026/06/28/db7f8914abbc43a68166a85ba42944f6.png,/aid/2026/06/28/16dea209bde84cd6a61ee23b8155b02a.png,/aid/2026/07/21/194827b2b6a64490b9af8604cd15a582.png', '默认头像图片地址(逗号分隔,最多5张)', '0', 1, '2026-06-28 20:14:43', '', 'admin', '2026-07-21 16:38:15', '注册时从这些头像中随机选取；为空则用户头像可为空', NULL, NULL, 0);
+INSERT INTO `aid_config` VALUES (267, 'default_avatar', 'urls', '/default-avatars/1.png,/default-avatars/2.png,/default-avatars/3.png,/default-avatars/4.png,/default-avatars/5.png', '默认头像图片地址(逗号分隔,最多5张)', '0', 1, '2026-06-28 20:14:43', '', 'admin', '2026-07-21 16:38:15', '注册时随机选择；留空时使用内置头像', NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (268, 'mps', 'enabled', 'false', '媒体处理总开关', '0', 1, '2026-06-29 23:14:38', 'system', 'system', '2026-08-20 00:00:00', '关闭后不再接收新的整片合成任务', NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (269, 'mps', 'processMode', 'tencent-mps', '媒体处理方式', '0', 2, '2026-06-29 23:14:38', 'system', 'system', '2026-08-20 00:00:00', '可选 tencent-mps、aliyun-ims、local-ffmpeg', NULL, NULL, 0);
 INSERT INTO `aid_config` VALUES (270, 'mps', 'tencentSecretId', '', '腾讯云SecretId', '0', 3, '2026-06-29 23:14:38', 'system', 'system', '2026-08-20 00:00:00', '腾讯云MPS访问密钥ID', NULL, NULL, 0);
@@ -8346,3 +8354,216 @@ ALTER TABLE `aid_ai_model`
   ADD UNIQUE INDEX `uk_aid_ai_model_active_code` (`active_model_code`),
   ADD INDEX `idx_aid_ai_model_model_code` (`model_code`),
   DROP INDEX `uk_aid_ai_model_model_code`;
+
+-- 未发布：Topaz Labs 图片处理供应商与模型目录；MySQL 5.7，可重复执行。
+SET NAMES utf8mb4;
+-- 供应商与模型默认停用；密钥和人民币售价须由站长在后台设置，启用前进行真实上游验证。
+INSERT INTO aid_ai_provider
+ (provider_name, provider_code, logo_url, base_url, api_key, auth_header, auth_prefix,
+  api_key_apply_url, official_doc_url, official_price_url, task_query_suffix,
+  status, del_flag, create_time, create_by, remark, supports_callback, schedule_strategy_json)
+SELECT 'Topaz Labs', 'topaz', '/brand-icons/topaz.ico', 'https://api.topazlabs.com', '', 'X-API-Key', '',
+ 'https://www.topazlabs.com/api', 'https://developer.topazlabs.com/',
+ 'https://developer.topazlabs.com/getting-started/model-pricing.md',
+ '/image/v1/status/%s', '1', '0', NOW(), 'system',
+ '官方 Image API；按输出像素档位配置人民币 SKU 后启用，不在 SQL 中保存密钥', 0,
+ '{"dispatchMode":"POLL_ONLY","supportsCallback":false,"firstPollDelaySeconds":5,"baseIntervalSeconds":5,"maxIntervalSeconds":30,"maxLifeSeconds":3600,"providerConcurrency":10,"modelConcurrency":5}'
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM aid_ai_provider WHERE provider_code = 'topaz');
+
+-- 所有模型每次输入一张图、输出一张图，按明确输出宽高计算像素并匹配既有 SKU 账本。
+SET @topaz_precision_params = JSON_OBJECT(
+ 'faceEnhancement', JSON_OBJECT('type','boolean','upstream','face_enhancement'),
+ 'faceEnhancementStrength', JSON_OBJECT('type','number','min',0,'max',1,'upstream','face_enhancement_strength'),
+ 'faceEnhancementCreativity', JSON_OBJECT('type','number','min',0,'max',1,'upstream','face_enhancement_creativity'),
+ 'subjectDetection', JSON_OBJECT('type','string','enum',JSON_ARRAY('foreground','background','all'),'upstream','subject_detection'),
+ 'sharpen', JSON_OBJECT('type','number','min',0,'max',1),
+ 'denoise', JSON_OBJECT('type','number','min',0,'max',1),
+ 'fixCompression', JSON_OBJECT('type','number','min',0,'max',1,'upstream','fix_compression'),
+ 'strength', JSON_OBJECT('type','number','min',0.01,'max',1),
+ 'outputFormat', JSON_OBJECT('type','string','enum',JSON_ARRAY('jpeg','jpg','png','tiff','tif'),'upstream','output_format'),
+ 'cropToFill', JSON_OBJECT('type','boolean','upstream','crop_to_fill'));
+SET @topaz_precision_capability = JSON_OBJECT(
+ 'minReferenceImages',1,'maxReferenceImages',1,'referenceImageMaxPixels',512000000,
+ 'referenceImageFormats',JSON_ARRAY('jpeg','jpg','png','tiff','tif'),
+ 'maxOutputPixels',1024000000,'allowCustomWH',true,'requiresConfiguredBilling',true,
+ 'sceneRules',JSON_OBJECT('imageUpscale',JSON_OBJECT('inputRequirement','image_required')),
+ 'providerParameters',CAST(@topaz_precision_params AS JSON));
+
+INSERT INTO aid_ai_model
+ (provider_id, model_code, real_model_code, model_name, model_type, generate_mode,
+  api_suffix, protocol, cost_credits, billing_mode, billing_rule_json, status, del_flag,
+  create_time, create_by, remark, image_refine, supports_text_input, supports_image_input,
+  supports_multi_image_input, max_output_count, default_output_count, supports_size_preset, supports_aspect_ratio,
+  capability_json, capability_inited, official_price_url)
+SELECT p.id, catalog.code, catalog.upstream, catalog.label, 'image', 'image_upscale',
+ catalog.endpoint, 'topaz-image', 0, 'SKU', NULL, '1', '0', NOW(), 'system',
+ 'Topaz 官方图片处理模型；未配置密钥、人民币 SKU 和实测前保持停用', 3, catalog.text_input,
+ 1, 0, 1, 1, 0, 0, catalog.capability, 1,
+ 'https://developer.topazlabs.com/getting-started/model-pricing.md'
+FROM aid_ai_provider p JOIN (
+ SELECT 'topaz-standard-2' code, 'Standard V2' upstream, 'Topaz Standard 2' label,
+  '/image/v1/enhance/async' endpoint, 0 text_input, @topaz_precision_capability capability
+ UNION ALL SELECT 'topaz-low-resolution-2', 'Low Resolution V2', 'Topaz Low Resolution 2',
+  '/image/v1/enhance/async', 0, @topaz_precision_capability
+ UNION ALL SELECT 'topaz-art-cgi', 'CGI', 'Topaz Art & CGI',
+  '/image/v1/enhance/async', 0,
+  JSON_SET(@topaz_precision_capability,'$.providerParameters.deblurStrength',
+   JSON_OBJECT('type','number','min',0,'max',1))
+ UNION ALL SELECT 'topaz-high-fidelity-3', 'Upscale High Fidelity V3', 'Topaz High Fidelity 3',
+  '/image/v1/enhance/async', 0,
+  JSON_SET(@topaz_precision_capability,
+   '$.providerParameters.recoveryStrength',JSON_OBJECT('type','number','min',0,'max',1),
+   '$.providerParameters.opacity',JSON_OBJECT('type','number','min',0,'max',1))
+ UNION ALL SELECT 'topaz-text-shapes', 'Text Refine', 'Topaz Text & Shapes',
+  '/image/v1/enhance/async', 0,
+  JSON_SET(@topaz_precision_capability,
+   '$.providerParameters.denoiseStrength',JSON_OBJECT('type','number','min',0,'max',1),
+   '$.providerParameters.deblurStrength',JSON_OBJECT('type','number','min',0,'max',1),
+   '$.providerParameters.decompressionStrength',JSON_OBJECT('type','number','min',0,'max',1),
+   '$.providerParameters.opacity',JSON_OBJECT('type','number','min',0,'max',1))
+ UNION ALL SELECT 'topaz-wonder-3-5', 'Wonder 3.5', 'Topaz Wonder 3.5',
+  '/image/v1/enhance-gen/async', 0,
+  JSON_SET(@topaz_precision_capability,'$.maxOutputPixels',256000000,
+   '$.providerParameters',JSON_OBJECT(
+    'enhancementStrength',JSON_OBJECT('type','string','enum',JSON_ARRAY('low','medium','high')),
+    'grain',JSON_OBJECT('type','boolean'),
+    'grainDensity',JSON_OBJECT('type','number','min',0,'max',1),
+    'grainModel',JSON_OBJECT('type','string','enum',JSON_ARRAY('silver','gaussian','grey')),
+    'grainSize',JSON_OBJECT('type','number','min',1,'max',5),
+    'grainStrength',JSON_OBJECT('type','number','min',0,'max',1),
+    'outputFormat',JSON_OBJECT('type','string','enum',JSON_ARRAY('jpeg','jpg','png','tiff','tif'),'upstream','output_format'),
+    'cropToFill',JSON_OBJECT('type','boolean','upstream','crop_to_fill')))
+ UNION ALL SELECT 'topaz-bloom-2', 'Bloom 2', 'Topaz Bloom 2',
+  '/image/v1/enhance-gen/async', 1,
+  JSON_SET(@topaz_precision_capability,'$.maxOutputPixels',256000000,
+   '$.promptOptional',true,
+   '$.providerParameters',JSON_OBJECT(
+    'colorPreservation',JSON_OBJECT('type','boolean'),
+    'creativity',JSON_OBJECT('type','integer','min',1,'max',9),
+    'grain',JSON_OBJECT('type','boolean'),
+    'grainDensity',JSON_OBJECT('type','number','min',0,'max',1),
+    'grainModel',JSON_OBJECT('type','string','enum',JSON_ARRAY('silver','gaussian','grey')),
+    'grainSize',JSON_OBJECT('type','number','min',1,'max',5),
+    'grainStrength',JSON_OBJECT('type','number','min',0,'max',1),
+    'seed',JSON_OBJECT('type','integer','min',0,'max',2147483647),
+    'outputFormat',JSON_OBJECT('type','string','enum',JSON_ARRAY('jpeg','jpg','png','tiff','tif'),'upstream','output_format'),
+    'cropToFill',JSON_OBJECT('type','boolean','upstream','crop_to_fill')))
+) catalog ON p.provider_code = 'topaz'
+WHERE NOT EXISTS (SELECT 1 FROM aid_ai_model m WHERE m.model_code = catalog.code AND m.del_flag = '0');
+
+-- Topaz 图片按输出像素向上取整计费。参考 Developer 每 Topaz credit $0.10、
+-- 估算汇率 ¥6.70/$，初始成本 ¥0.67/credit；实际售价仍乘系统统一倍率，
+-- 后台可调整该单价。官方型号页对应 24/8/2 MP 每 credit。
+-- 只补齐未定价且仍停用的模型，不覆盖运营自行配置的价格或启停。
+UPDATE aid_ai_model m
+JOIN aid_ai_provider p ON p.id = m.provider_id
+SET m.billing_rule_json = JSON_OBJECT(
+ 'mode','SKU','meterType','PER_IMAGE','chargeType','IMAGE','preHold',true,
+ 'matchStrategy','FIRST_HIT','skus',JSON_ARRAY(JSON_OBJECT(
+  'skuCode',CONCAT(UPPER(REPLACE(m.model_code,'-','_')),'_OUTPUT_MP'),
+  'skuName',CONCAT(m.model_name,' 输出像素计费'),
+  'enabled',true,'priority',1,'match',JSON_OBJECT(),
+  'price',0.67,
+  'outputPixelsPerUnit',CASE
+    WHEN m.model_code = 'topaz-wonder-3-5' THEN 8000000
+    WHEN m.model_code = 'topaz-bloom-2' THEN 2000000
+    ELSE 24000000 END,
+  'remark','初始估算：Developer $0.10/credit × ¥6.70/$；按输出像素向上取整，后台可改价'
+  )))
+WHERE p.provider_code = 'topaz'
+  AND m.model_code IN ('topaz-standard-2','topaz-low-resolution-2',
+   'topaz-art-cgi','topaz-high-fidelity-3','topaz-text-shapes',
+   'topaz-wonder-3-5','topaz-bloom-2')
+  AND m.status = '1' AND m.del_flag = '0'
+  AND (m.billing_rule_json IS NULL OR TRIM(m.billing_rule_json) = '');
+
+-- Ensure providers seeded without a logo also receive the packaged brand asset.
+UPDATE aid_ai_provider SET logo_url='/brand-icons/dashscope.jpg' WHERE provider_code='dashscope' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/07/06/a1c2f4b38230472cb5074382afa97dcc.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/a1c2f4b38230472cb5074382afa97dcc.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/volcengine.jpg' WHERE provider_code='volcengine' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/07/06/b0538b7a72444c1ea45cc178d6dd3da1.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/b0538b7a72444c1ea45cc178d6dd3da1.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/jimeng.jpg' WHERE provider_code='jimeng' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/07/06/20147fcb2e7348c795fe6c14cf079280.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/20147fcb2e7348c795fe6c14cf079280.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/gemini.png' WHERE provider_code='gemini' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/06/28/780b866cf29b41269d455f6bba017ab1.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/780b866cf29b41269d455f6bba017ab1.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/openai.png' WHERE provider_code='openai' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/06/28/ae4d1a37233c454da5abe3bc6f66840b.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/ae4d1a37233c454da5abe3bc6f66840b.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/volcengine_tts.jpg' WHERE provider_code='volcengine_tts' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/06/28/be834b781cbd4931b6e4b358c5cc618d.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/be834b781cbd4931b6e4b358c5cc618d.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/minimax.png' WHERE provider_code='minimax' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/06/28/c00ff4fa7c5a4540bd3e0ce7757a0dc7.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/c00ff4fa7c5a4540bd3e0ce7757a0dc7.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/agnes.png' WHERE provider_code='agnes' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/07/06/5960f856dcfa475ca2139e50837898f4.png' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/5960f856dcfa475ca2139e50837898f4.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/vidu.jpg' WHERE provider_code='vidu' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/06/28/29a1c29484e04e5393e25cc46a2dff49.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/29a1c29484e04e5393e25cc46a2dff49.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/deepseek.jpg' WHERE provider_code='deepseek' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/07/17/33919808cdb2492da44d8889ff305675.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/17/33919808cdb2492da44d8889ff305675.jpg'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/kling.png' WHERE provider_code='kling' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/08/10/f78e0d4c85a644a995c7fca0cc5717fc.png' OR logo_url LIKE CONCAT('%', '/aid/2026/08/10/f78e0d4c85a644a995c7fca0cc5717fc.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/tokendance.png' WHERE provider_code='tokendance' AND (logo_url IS NULL OR logo_url='' OR logo_url='/aid/2026/09/09/25fd45b0a0f34d14bca576391230467f.png' OR logo_url LIKE CONCAT('%', '/aid/2026/09/09/25fd45b0a0f34d14bca576391230467f.png'));
+UPDATE aid_ai_provider SET logo_url='/brand-icons/topaz.ico' WHERE provider_code='topaz' AND (logo_url IS NULL OR logo_url='' OR logo_url='https://account.topazlabs.com/favicon.ico');
+
+-- Model-specific icons that reused a shipped supplier image follow the same local asset.
+UPDATE aid_ai_model SET logo_url='/brand-icons/dashscope.jpg' WHERE logo_url='/aid/2026/07/06/a1c2f4b38230472cb5074382afa97dcc.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/a1c2f4b38230472cb5074382afa97dcc.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/volcengine.jpg' WHERE logo_url='/aid/2026/07/06/b0538b7a72444c1ea45cc178d6dd3da1.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/b0538b7a72444c1ea45cc178d6dd3da1.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/jimeng.jpg' WHERE logo_url='/aid/2026/07/06/20147fcb2e7348c795fe6c14cf079280.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/20147fcb2e7348c795fe6c14cf079280.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/gemini.png' WHERE logo_url='/aid/2026/06/28/780b866cf29b41269d455f6bba017ab1.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/780b866cf29b41269d455f6bba017ab1.png');
+UPDATE aid_ai_model SET logo_url='/brand-icons/openai.png' WHERE logo_url='/aid/2026/06/28/ae4d1a37233c454da5abe3bc6f66840b.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/ae4d1a37233c454da5abe3bc6f66840b.png');
+UPDATE aid_ai_model SET logo_url='/brand-icons/volcengine_tts.jpg' WHERE logo_url='/aid/2026/06/28/be834b781cbd4931b6e4b358c5cc618d.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/be834b781cbd4931b6e4b358c5cc618d.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/minimax.png' WHERE logo_url='/aid/2026/06/28/c00ff4fa7c5a4540bd3e0ce7757a0dc7.png' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/c00ff4fa7c5a4540bd3e0ce7757a0dc7.png');
+UPDATE aid_ai_model SET logo_url='/brand-icons/agnes.png' WHERE logo_url='/aid/2026/07/06/5960f856dcfa475ca2139e50837898f4.png' OR logo_url LIKE CONCAT('%', '/aid/2026/07/06/5960f856dcfa475ca2139e50837898f4.png');
+UPDATE aid_ai_model SET logo_url='/brand-icons/vidu.jpg' WHERE logo_url='/aid/2026/06/28/29a1c29484e04e5393e25cc46a2dff49.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/06/28/29a1c29484e04e5393e25cc46a2dff49.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/deepseek.jpg' WHERE logo_url='/aid/2026/07/17/33919808cdb2492da44d8889ff305675.jpg' OR logo_url LIKE CONCAT('%', '/aid/2026/07/17/33919808cdb2492da44d8889ff305675.jpg');
+UPDATE aid_ai_model SET logo_url='/brand-icons/kling.png' WHERE logo_url='/aid/2026/08/10/f78e0d4c85a644a995c7fca0cc5717fc.png' OR logo_url LIKE CONCAT('%', '/aid/2026/08/10/f78e0d4c85a644a995c7fca0cc5717fc.png');
+UPDATE aid_ai_model SET logo_url='/brand-icons/tokendance.png' WHERE logo_url='/aid/2026/09/09/25fd45b0a0f34d14bca576391230467f.png' OR logo_url LIKE CONCAT('%', '/aid/2026/09/09/25fd45b0a0f34d14bca576391230467f.png');
+
+-- 供应商展示分类独立于协议和调度，仅维护三方聚合与官方厂商。
+SET @category_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='provider_category'), 'SELECT 1', 'ALTER TABLE aid_ai_provider ADD COLUMN provider_category VARCHAR(16) NULL DEFAULT NULL COMMENT ''展示分类：AGGREGATOR三方聚合，OFFICIAL官方厂商''');
+PREPARE category_stmt FROM @category_ddl;
+EXECUTE category_stmt;
+DEALLOCATE PREPARE category_stmt;
+SET @order_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='display_order'), 'SELECT 1', 'ALTER TABLE aid_ai_provider ADD COLUMN display_order INT NOT NULL DEFAULT 100 COMMENT ''同类展示顺序，不参与调度''');
+PREPARE order_stmt FROM @order_ddl;
+EXECUTE order_stmt;
+DEALLOCATE PREPARE order_stmt;
+-- 只初始化尚未分类的记录，重复执行保留管理员已保存的分类和排序。
+UPDATE aid_ai_provider
+SET provider_category=CASE WHEN provider_code IN ('dashscope','volcengine','jimeng','gemini','openai','volcengine_tts','minimax','vidu','deepseek','kling','topaz','anthropic','claude','xai','moonshot','zhipu','mistral') THEN 'OFFICIAL' ELSE 'AGGREGATOR' END,
+    display_order=CASE provider_code WHEN 'tokendance' THEN 10 WHEN 'newapi' THEN 30 ELSE 100 END
+WHERE provider_category IS NULL;
+
+-- New API 站点账户授权与调用凭证相互独立。
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='integration_type'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `integration_type` VARCHAR(16) NOT NULL DEFAULT ''NATIVE'' COMMENT ''接入方式''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='new_api_system_token_enabled'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `new_api_system_token_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''启用普通用户访问令牌''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='new_api_access_token'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `new_api_access_token` VARCHAR(4096) NULL COMMENT ''上游普通用户访问令牌''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='new_api_user_id'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `new_api_user_id` BIGINT NULL COMMENT ''上游普通用户编号''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='new_api_group'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `new_api_group` VARCHAR(128) NULL COMMENT ''上游分组''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+SET @newapi_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='aid_ai_provider' AND COLUMN_NAME='new_api_token_id'), 'SELECT 1', 'ALTER TABLE `aid_ai_provider` ADD COLUMN `new_api_token_id` BIGINT NULL COMMENT ''上游调用令牌编号''');
+PREPARE newapi_stmt FROM @newapi_ddl;
+EXECUTE newapi_stmt;
+DEALLOCATE PREPARE newapi_stmt;
+
+-- Restore the verified MiniMax H3 scenes on previously imported TokenDance catalog models.
+-- Keep administrator-defined sceneRules untouched; repeat execution is a no-op.
+UPDATE aid_ai_model m
+JOIN aid_ai_provider p ON p.id=m.provider_id AND p.provider_code='tokendance'
+SET m.capability_json=JSON_SET(m.capability_json, '$.sceneRules', JSON_OBJECT(
+      'textToVideo', JSON_OBJECT('requiredInputs',JSON_ARRAY('text'),'allowedInputs',JSON_ARRAY('text')),
+      'imageToVideo', JSON_OBJECT('requiredInputs',JSON_ARRAY('firstFrame'),
+          'allowedInputs',JSON_ARRAY('text','firstFrame'),'aspectRatioFollowInput',TRUE),
+      'startEndToVideo', JSON_OBJECT('requiredInputs',JSON_ARRAY('firstFrame','lastFrame'),
+          'allowedInputs',JSON_ARRAY('text','firstFrame','lastFrame'),'aspectRatioFollowInput',TRUE),
+      'referenceToVideo', JSON_OBJECT('requiredInputs',JSON_ARRAY('text'),
+          'requiredAnyOf',JSON_ARRAY('image','video'),
+          'allowedInputs',JSON_ARRAY('text','image','video','audio')))),
+    m.supports_first_frame=1, m.supports_last_frame=1, m.supports_multi_image_input=1,
+    m.config_version=COALESCE(m.config_version,0)+1,
+    m.update_time=NOW(), m.update_by='capability-repair'
+WHERE m.real_model_code='minimax-h3'
+  AND m.protocol='tokendance:minimax:video_generation_v2'
+  AND m.del_flag='0' AND JSON_VALID(m.capability_json)
+  AND JSON_CONTAINS_PATH(m.capability_json,'one','$.sceneRules')=0;

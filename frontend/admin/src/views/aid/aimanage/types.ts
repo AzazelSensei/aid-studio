@@ -1,4 +1,12 @@
 export interface Provider {
+  integrationType?: 'NATIVE' | 'NEW_API';
+  newApiSystemTokenEnabled?: boolean;
+  newApiAccessToken?: string;
+  newApiUserId?: number;
+  newApiGroup?: string;
+  newApiTokenId?: number;
+  providerCategory?: 'AGGREGATOR' | 'OFFICIAL';
+  displayOrder?: number;
   id: number;
   providerName: string;
   providerCode: string;
@@ -135,6 +143,8 @@ export interface Sku {
   priority: number;
   match: Record<string, unknown>;
   price?: number | null;
+  /** 每个价格单位覆盖的输出像素；只适用于按图片计费，留空即固定单张价。 */
+  outputPixelsPerUnit?: number | null;
   /** 每秒单价（PER_SECOND 口径专用；缺省时后端用 price ÷ match.durationMax 反推） */
   pricePerSecond?: number | null;
   /** 每字符单价（PER_CHAR 口径专用，TTS 配音） */

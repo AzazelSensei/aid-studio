@@ -50,7 +50,12 @@ export function isSkuMainPriceConfigured(rawSku: unknown, fallbackMeterType: str
   if (meterType === 'TOKEN') {
     return finiteNumber(sku.inputPricePerMillion) != null && finiteNumber(sku.outputPricePerMillion) != null;
   }
-  if (meterType === 'PER_IMAGE' || meterType === 'SKU_PACKAGE') return finiteNumber(sku.price) != null;
+  if (meterType === 'PER_IMAGE') {
+    const unit = sku.outputPixelsPerUnit;
+    return finiteNumber(sku.price) != null && (unit == null
+      || (Number.isSafeInteger(Number(unit)) && Number(unit) > 0));
+  }
+  if (meterType === 'SKU_PACKAGE') return finiteNumber(sku.price) != null;
   if (meterType === 'PER_SECOND') {
     return finiteNumber(sku.pricePerSecond) != null || (!explicitMeterType && Number(sku.price) > 0);
   }
@@ -77,7 +82,13 @@ export function skuPriceLabel(rawSku: unknown, fallbackMeterType: string): strin
     const surcharge = price(sku.fixedSurcharge, '次附加');
     return [usage, surcharge].filter(Boolean).join(' + ') || '价格未配置';
   }
-  if (meterType === 'PER_IMAGE') return price(sku.price, '张') || '价格未配置';
+  if (meterType === 'PER_IMAGE') {
+    const pixelsPerUnit = finiteNumber(sku.outputPixelsPerUnit);
+    if (pixelsPerUnit && Number.isInteger(pixelsPerUnit)) {
+      return price(sku.price, `${formatAmount(pixelsPerUnit / 1_000_000)} MP 输出单位（向上取整）`) || '价格未配置';
+    }
+    return price(sku.price, '张') || '价格未配置';
+  }
   if (meterType === 'SKU_PACKAGE') {
     const packagePrice = price(sku.price, '次');
     const surcharge = price(sku.fixedSurcharge, '次附加');

@@ -106,10 +106,14 @@ public class VerifiedMediaMetadataService {
                             safeHost(address), kind, attempt, DOWNLOAD_ATTEMPTS);
                 }
             }
-            process = new ProcessBuilder(config.getMpsProperties().getFfprobePath(), "-v", "error",
-                    "-protocol_whitelist", "file,pipe", "-select_streams", "audio".equals(kind) ? "a:0" : "v:0",
-                    "-show_entries", "stream=codec_name,width,height,avg_frame_rate,duration:format=duration,format_name:format_tags=major_brand",
-                    "-of", "json", file.toString()).redirectErrorStream(true).start();
+            java.util.List<String> command = new java.util.ArrayList<>(java.util.List.of(
+                    config.getMpsProperties().getFfprobePath(), "-v", "error", "-protocol_whitelist", "file,pipe",
+                    "-select_streams", "audio".equals(kind) ? "a:0" : "v:0"));
+            if ("image".equals(kind)) command.add("-count_frames");
+            command.addAll(java.util.List.of("-show_entries",
+                    "stream=codec_name,width,height,avg_frame_rate,duration,nb_read_frames:format=duration,format_name:format_tags=major_brand",
+                    "-of", "json", file.toString()));
+            process = new ProcessBuilder(command).redirectErrorStream(true).start();
             if (!process.waitFor(8, TimeUnit.SECONDS) || process.exitValue() != 0) throw new ServiceException("素材解析失败");
             byte[] response = process.getInputStream().readNBytes(65537);
             if (response.length > 65536) throw new ServiceException("素材解析失败");
@@ -125,7 +129,8 @@ public class VerifiedMediaMetadataService {
                 fps = new BigDecimal(fraction[0]).divide(new BigDecimal(fraction[1]), 12, RoundingMode.HALF_UP);
             }
             return new Metadata(size, duration, stream.path("width").asInt(0), stream.path("height").asInt(0), fps,
-                    format(kind, stream.path("codec_name").asText(), root.path("format"), file));
+                    format(kind, stream.path("codec_name").asText(), root.path("format"), file),
+                    stream.path("codec_name").asText(), stream.path("nb_read_frames").asInt(0));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new ServiceException("素材解析中断");
@@ -245,5 +250,6 @@ public class VerifiedMediaMetadataService {
 
     private record Vint(long value, int length, boolean unknown) { }
 
-    public record Metadata(long sizeBytes, BigDecimal durationSeconds, int width, int height, BigDecimal fps, String format) { }
+    public record Metadata(long sizeBytes, BigDecimal durationSeconds, int width, int height, BigDecimal fps,
+                           String format, String codec, int frameCount) { }
 }

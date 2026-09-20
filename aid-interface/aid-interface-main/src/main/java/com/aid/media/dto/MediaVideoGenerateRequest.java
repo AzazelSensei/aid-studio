@@ -23,6 +23,10 @@ public class MediaVideoGenerateRequest {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String invocationIdentity;
 
+    /** 上游提交幂等键仅在任务派发内存中设置，不接受客户端传入或写入请求快照。 */
+    @JsonIgnore
+    private String providerIdempotencyKey;
+
     // 项目ID（可选）：用于关联任务到具体项目，列表查询时按项目过滤。
     private Long projectId;
 

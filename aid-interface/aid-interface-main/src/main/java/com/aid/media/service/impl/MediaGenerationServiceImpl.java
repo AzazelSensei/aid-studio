@@ -63,6 +63,8 @@ import com.aid.media.eta.MediaEtaService;
 import com.aid.media.provider.ImageProviderClient;
 import com.aid.media.provider.KlingVideoRequestBuilder;
 import com.aid.media.provider.MinimaxH3VideoRequestBuilder;
+import com.aid.media.provider.DmcH3VideoRequestBuilder;
+import com.aid.media.provider.impl.DmcH3VideoProviderClient.SubmissionOutcomeUnknownException;
 import com.aid.media.provider.ProviderSubmitResult;
 import com.aid.media.provider.ProviderErrorSanitizer;
 import com.aid.media.provider.ProviderUsageSupport;
@@ -94,6 +96,7 @@ import com.aid.media.util.ModelCapabilityResolver;
 import com.aid.media.util.ModelInputCapabilityValidator;
 import com.aid.media.util.ReferenceMediaRequestNormalizer;
 import com.aid.media.util.VideoDurationProber;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.aid.rps.service.IExtractBillingService;
 import com.aid.rps.service.impl.TextTaskExecutionRejectedException;
 import com.aid.service.IAiModelConfigService;
@@ -496,6 +499,15 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
 
     @Override
     public MediaTaskResponse generateImage(MediaImageGenerateRequest request) {
+        return createImageTask(request, false);
+    }
+
+    @Override
+    public MediaTaskResponse submitImage(MediaImageGenerateRequest request) {
+        return createImageTask(request, true);
+    }
+
+    private MediaTaskResponse createImageTask(MediaImageGenerateRequest request, boolean deferred) {
         //      SecurityContext 会丢失，仅靠 getCurrentUserIdSafe() 会取到 null，
         //      导致 task.userId 为空、预冻结/结算/退款全部被跳过造成漏扣费。
         //      业务调用方显式 setUserId 时优先采用，否则回退到登录上下文（保留同步接口行为）。
@@ -513,7 +525,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             return toResponse(existing);
         }
         // 四维并发准入（全局/用户/模型/供应商）：用规范模型编码抢占，与任务落库的 model_name 一致。
-        boolean canRun = concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
+        boolean canRun = !deferred && concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
 
         AidMediaTask task = new AidMediaTask();
         // 记录发起用户，匿名请求时允许为 null。
@@ -573,6 +585,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             throw freezeEx;
         }
         // 并发超限：QUEUED，提交交由现有排队拉起逻辑（drainQueue）。
+        if (deferred) {
+            dispatchDeferredTask(task.getId());
+            return toResponse(task);
+        }
         if (!canRun) {
             return toResponse(task);
         }
@@ -586,6 +602,15 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
 
     @Override
     public MediaTaskResponse generateVideo(MediaVideoGenerateRequest request) {
+        return createVideoTask(request, false);
+    }
+
+    @Override
+    public MediaTaskResponse submitVideo(MediaVideoGenerateRequest request) {
+        return createVideoTask(request, true);
+    }
+
+    private MediaTaskResponse createVideoTask(MediaVideoGenerateRequest request, boolean deferred) {
         //      SecurityContext 会丢失，仅靠 getCurrentUserIdSafe() 会取到 null，
         //      导致 task.userId 为空、预冻结/结算/退款全部被跳过造成漏扣费。
         //      业务调用方显式 setUserId 时优先采用，否则回退到登录上下文（保留同步接口行为）。
@@ -602,7 +627,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             return toResponse(existing);
         }
         // 四维并发准入（全局/用户/模型/供应商）：用规范模型编码抢占，与任务落库的 model_name 一致。
-        boolean canRun = concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
+        boolean canRun = !deferred && concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
 
         AidMediaTask task = new AidMediaTask();
         // 记录用户上下文（优先显式入参，兜底登录态）。
@@ -656,6 +681,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             throw freezeEx;
         }
         // 并发超限：QUEUED，提交交由现有排队拉起逻辑。
+        if (deferred) {
+            dispatchDeferredTask(task.getId());
+            return toResponse(task);
+        }
         if (!canRun) {
             return toResponse(task);
         }
@@ -881,6 +910,15 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
 
     @Override
     public MediaTaskResponse generateText(MediaTextGenerateRequest request) {
+        return createTextTask(request, false);
+    }
+
+    @Override
+    public MediaTaskResponse submitText(MediaTextGenerateRequest request) {
+        return createTextTask(request, true);
+    }
+
+    private MediaTaskResponse createTextTask(MediaTextGenerateRequest request, boolean deferred) {
         //      限流、幂等、入库、释放全部用同一个值，避免 anonymous 与真实 userId 错乱。
         Long effectiveUserId = request.getUserId() != null ? request.getUserId() : getCurrentUserIdSafe();
         PreparedMediaBillingInput preparedBilling = prepareTextBilling(request, true);
@@ -898,7 +936,7 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         TextProviderClient client = resolveTextClient(request.getModelName(), modelConfig);
         client.validateProviderConfiguration(modelConfig, request);
         // 四维并发准入（全局/用户/模型/供应商）：用规范模型编码抢占，与任务落库的 model_name 一致。
-        boolean canRun = concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
+        boolean canRun = !deferred && concurrencyLimiter.tryAcquire(effectiveUserId, modelConfig.getModelCode());
         if (!canRun && com.aid.tokendance.provider.text.TokenDanceToolMessages.isToolTurn(modelConfig, request)) {
             // 工具续轮含仅内存思考签名，不能降级为丢失上下文的磁盘排队请求。
             throw new ServiceException("并发已满请稍后重试");
@@ -962,6 +1000,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             throw freezeEx;
         }
         // 并发超限：QUEUED，提交交由现有排队拉起逻辑。
+        if (deferred) {
+            dispatchDeferredTask(task.getId());
+            return toResponse(task);
+        }
         if (!canRun) {
             return toResponse(task);
         }
@@ -3088,6 +3130,10 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             }
             return;
         }
+        if (modelConfig != null && StringUtils.isBlank(prompt)) {
+            JsonNode capability = ModelCapabilityResolver.parseCapability(modelConfig.getCapabilityJson());
+            if (capability != null && capability.path("promptOptional").asBoolean(false)) return;
+        }
         validatePrompt(prompt);
     }
 
@@ -3206,6 +3252,11 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
             if (modelConfig != null
                 && MinimaxH3Constants.PROTOCOL_VIDEO.equalsIgnoreCase(StrUtil.trim(modelConfig.getProtocol()))) {
                 MinimaxH3VideoRequestBuilder.buildSubmissionBodyForValidation(modelConfig, request);
+                return;
+            }
+            if (modelConfig != null
+                && DmcH3VideoRequestBuilder.PROTOCOL.equalsIgnoreCase(StrUtil.trim(modelConfig.getProtocol()))) {
+                DmcH3VideoRequestBuilder.build(modelConfig, request, false);
                 return;
             }
             if (modelConfig != null
@@ -3970,9 +4021,29 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
         return req;
     }
 
-    /**
-     * 批量场景：事务已提交、扣费已成功后，由线程池异步调用；尝试抢占并发坑位后提交上游。
-     */
+    /** The durable QUEUED row is the fallback when the shared executor is saturated or shutting down. */
+    private void dispatchDeferredTask(Long taskId) {
+        Thread caller = Thread.currentThread();
+        AtomicBoolean callerFallback = new AtomicBoolean();
+        try {
+            threadPoolTaskExecutor.execute(new FutureTask<Void>(() -> {
+                // The shared executor uses CallerRunsPolicy; never submit to a provider on the HTTP thread.
+                if (Thread.currentThread() != caller) {
+                    submitSingleTaskAsync(taskId);
+                } else {
+                    callerFallback.set(true);
+                }
+                return null;
+            }));
+            if (callerFallback.get()) {
+                log.warn("异步提交线程池已满，任务留在队列等待补偿调度, taskId={}", taskId);
+            }
+        } catch (RuntimeException rejected) {
+            log.warn("异步提交暂不可用，任务留在队列等待补偿调度, taskId={}", taskId, rejected);
+        }
+    }
+
+    /** 批量及非流式提交共用：任务已落库、预冻结后抢占并发槽，CAS 入执行态。 */
     private void submitSingleTaskAsync(Long taskId) {
         AidMediaTask task = aidMediaTaskMapper.selectById(taskId);
         if (task == null) {
@@ -4246,7 +4317,8 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 submitResult = client.submit(modelConfig, imgReq);
             } else if (Objects.equals(task.getMediaType(), MediaType.VIDEO.name())) {
                 MediaVideoGenerateRequest vidReq = JSONUtil.toBean(task.getRequestJson(), MediaVideoGenerateRequest.class);
-                if ("tokendance".equalsIgnoreCase(modelConfig.getProviderCode())
+                if (("tokendance".equalsIgnoreCase(modelConfig.getProviderCode())
+                        || DmcH3VideoRequestBuilder.PROTOCOL.equalsIgnoreCase(modelConfig.getProtocol()))
                         && vidReq.getReferenceVideoRecordIds() != null && !vidReq.getReferenceVideoRecordIds().isEmpty()) {
                     // 内部可信 DTO 不写任务 JSON；队列拉起后按任务归属重建，不能把裸 URL 当已核验素材。
                     vidReq.setUserId(task.getUserId());
@@ -4261,6 +4333,9 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 }
                 modelResourceUrlSigner.sign(vidReq);
                 VideoProviderClient client = resolveVideoClient(vidReq.getModelName(), modelConfig);
+                if ("dmc-h3-video".equalsIgnoreCase(modelConfig.getProtocol())) {
+                    vidReq.setProviderIdempotencyKey("aid-dmc-" + task.getId());
+                }
                 submitResult = client.submit(modelConfig, vidReq);
             } else if (Objects.equals(task.getMediaType(), MediaType.AUDIO.name())) {
                 com.aid.media.dto.MediaAudioGenerateRequest audioReq =
@@ -4334,6 +4409,11 @@ public class MediaGenerationServiceImpl implements IMediaGenerationService, Medi
                 cleanupNormalizedVideoInputs(task);
                 publishTextTaskCompletedSafely(task);
             }
+        } catch (SubmissionOutcomeUnknownException ex) {
+            // POST 可能已被上游接受；冻结款和并发占用保持原状，等待人工核对。
+            task.setErrorMessage("DMC 提交结果待核对");
+            requiresNewTxTemplate.executeWithoutResult(s -> updateTaskWithPayloadArchive(task));
+            log.error("DMC 提交结果未知，保留 PENDING, taskId={}", task.getId());
         } catch (Exception ex) {
             long submitElapsedMs = System.currentTimeMillis() - submitStartMs;
             boolean textTask = MediaType.TEXT.name().equals(task.getMediaType());

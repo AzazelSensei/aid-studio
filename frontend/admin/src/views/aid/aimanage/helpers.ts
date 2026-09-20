@@ -705,7 +705,7 @@ export function parseBillingRuleJson(json: string): {
     }
     if (Array.isArray(rule.skus)) {
       const numericFields = [
-        'priority', 'price', 'pricePerSecond', 'pricePerChar', 'fixedSurcharge',
+        'priority', 'price', 'outputPixelsPerUnit', 'pricePerSecond', 'pricePerChar', 'fixedSurcharge',
         'inputPricePerMillion', 'outputPricePerMillion', 'cachedInputPricePerMillion',
         'cacheWritePricePerMillion', 'reasoningPricePerMillion'
       ];
@@ -739,6 +739,7 @@ export function parseBillingRuleJson(json: string): {
         priority: s.priority != null ? s.priority : 1,
         match: s.match && typeof s.match === 'object' && !Array.isArray(s.match) ? { ...s.match } : {},
         price: s.price != null ? s.price : null,
+        outputPixelsPerUnit: s.outputPixelsPerUnit != null ? s.outputPixelsPerUnit : null,
         pricePerSecond: s.pricePerSecond != null ? s.pricePerSecond : null,
         pricePerChar: s.pricePerChar != null ? s.pricePerChar : null,
         fixedSurcharge: s.fixedSurcharge != null ? s.fixedSurcharge : null,
@@ -877,7 +878,7 @@ export function buildBillingRuleJson(
     sku.match = currentMatch;
     sku.remark = s.remark || '';
     [
-      'price', 'pricePerSecond', 'pricePerChar', 'fixedSurcharge', 'inputPricePerMillion',
+      'price', 'outputPixelsPerUnit', 'pricePerSecond', 'pricePerChar', 'fixedSurcharge', 'inputPricePerMillion',
       'outputPricePerMillion', 'cachedInputPricePerMillion',
       'cacheWritePricePerMillion', 'reasoningPricePerMillion'
     ].forEach((key) => {
@@ -892,6 +893,9 @@ export function buildBillingRuleJson(
       if (s.reasoningPricePerMillion != null) sku.reasoningPricePerMillion = Number(s.reasoningPricePerMillion);
     } else {
       sku.price = s.price == null ? null : Number(s.price);
+      if (skuMeterType === 'PER_IMAGE' && s.outputPixelsPerUnit != null) {
+        sku.outputPixelsPerUnit = Number(s.outputPixelsPerUnit);
+      }
       // 按秒计费：每秒单价必须随 SKU 落库，否则结算兜底会用 price/durationMax 反推出错价
       if (skuMeterType === 'PER_SECOND' && s.pricePerSecond != null && Number(s.pricePerSecond) >= 0) {
         sku.pricePerSecond = Number(s.pricePerSecond);

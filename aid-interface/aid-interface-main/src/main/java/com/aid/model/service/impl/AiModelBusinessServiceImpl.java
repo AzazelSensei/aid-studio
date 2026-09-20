@@ -33,6 +33,7 @@ import com.aid.model.service.IAiModelBusinessService;
 import com.aid.model.vo.AiModelFuncGroupVO;
 import com.aid.model.vo.AiModelVO;
 import com.aid.model.vo.CapabilityVO;
+import com.aid.model.util.BuiltInBrandIcons;
 import com.aid.media.provider.ReferenceImageLimiter;
 import com.aid.media.util.ModelCapabilityResolver;
 
@@ -114,7 +115,7 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
         String generateMode = Objects.isNull(request) ? null : request.getGenerateMode();
         // 注意：校验性查询，只查必要字段
         LambdaQueryWrapper<AidAiProvider> providerWrapper = Wrappers.lambdaQuery();
-        providerWrapper.select(AidAiProvider::getId, AidAiProvider::getProviderName, AidAiProvider::getLogoUrl);
+        providerWrapper.select(AidAiProvider::getId, AidAiProvider::getProviderCode, AidAiProvider::getProviderName, AidAiProvider::getLogoUrl);
         providerWrapper.eq(AidAiProvider::getStatus, STATUS_NORMAL);
         providerWrapper.eq(AidAiProvider::getDelFlag, DEL_FLAG_NORMAL);
         List<AidAiProvider> providers = aiProviderService.list(providerWrapper);
@@ -128,8 +129,9 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
                 .collect(Collectors.toMap(AidAiProvider::getId, AidAiProvider::getProviderName));
         // 供应商ID→LOGO映射（logo 可能为空，过滤后再收集，避免 toMap 空值 NPE）
         Map<Long, String> providerLogoMap = providers.stream()
-                .filter(p -> Objects.nonNull(p.getLogoUrl()))
-                .collect(Collectors.toMap(AidAiProvider::getId, AidAiProvider::getLogoUrl));
+                .filter(p -> BuiltInBrandIcons.resolve(p.getProviderCode(), p.getLogoUrl()) != null)
+                .collect(Collectors.toMap(AidAiProvider::getId,
+                        p -> BuiltInBrandIcons.resolve(p.getProviderCode(), p.getLogoUrl())));
 
         if (CollectionUtil.isEmpty(availableProviderIds))
         {
@@ -282,7 +284,7 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
         }
 
         LambdaQueryWrapper<AidAiProvider> providerWrapper = Wrappers.lambdaQuery();
-        providerWrapper.select(AidAiProvider::getId, AidAiProvider::getProviderName, AidAiProvider::getLogoUrl);
+        providerWrapper.select(AidAiProvider::getId, AidAiProvider::getProviderCode, AidAiProvider::getProviderName, AidAiProvider::getLogoUrl);
         providerWrapper.eq(AidAiProvider::getStatus, STATUS_NORMAL);
         providerWrapper.eq(AidAiProvider::getDelFlag, DEL_FLAG_NORMAL);
         List<AidAiProvider> providers = aiProviderService.list(providerWrapper);
@@ -293,8 +295,9 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
                 .collect(Collectors.toMap(AidAiProvider::getId, AidAiProvider::getProviderName));
         // 供应商ID→LOGO映射（logo 可能为空，过滤后再收集，避免 toMap 空值 NPE）
         Map<Long, String> providerLogoMap = providers.stream()
-                .filter(p -> Objects.nonNull(p.getLogoUrl()))
-                .collect(Collectors.toMap(AidAiProvider::getId, AidAiProvider::getLogoUrl));
+                .filter(p -> BuiltInBrandIcons.resolve(p.getProviderCode(), p.getLogoUrl()) != null)
+                .collect(Collectors.toMap(AidAiProvider::getId,
+                        p -> BuiltInBrandIcons.resolve(p.getProviderCode(), p.getLogoUrl())));
 
         Map<Long, AidAiModel> modelById = new LinkedHashMap<>();
         for (AidAiModel m : models)
@@ -333,6 +336,24 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
                     ? model : modelDefinitions.project(model, selectedCapability,
                             defaults.isEmpty() ? null : defaults.get(0).getDefaultsJson());
             if (projected == null) continue;
+            // The multi-parameter picker needs the reference-material limits of a
+            // bound route, even when the text route is the invocation default.
+            // DMC H3 shares one price/parameter family across these routes.
+            if (Objects.equals(FUNC_CODE_STORYBOARD_VIDEO, funcCode)
+                    && Objects.equals("dmc-h3-video", projected.getProtocol())
+                    && Objects.equals("text_to_video", selectedCapability))
+            {
+                var referenceBinding = businessBindings.stream()
+                        .filter(binding -> Objects.equals(binding.getModelId(), model.getId())
+                                && Objects.equals("reference_to_video", binding.getCapabilityCode()))
+                        .findFirst();
+                if (referenceBinding.isPresent())
+                {
+                    AidAiModel referenceView = modelDefinitions.project(model, "reference_to_video",
+                            referenceBinding.get().getDefaultsJson());
+                    if (referenceView != null) projected = referenceView;
+                }
+            }
             result.add(buildModelVo(projected,
                     providerNameMap.get(model.getProviderId()),
                     providerLogoMap.get(model.getProviderId()),
@@ -829,8 +850,8 @@ public class AiModelBusinessServiceImpl implements IAiModelBusinessService
         // 默认规格 / 比例 / 时长（仅对应类型注入；不适用类型保持 null，符合语义）
         if (isImage)
         {
-            if (StrUtil.isBlank(vo.getDefaultSizeCode())) vo.setDefaultSizeCode("2K");
-            if (StrUtil.isBlank(vo.getDefaultAspectRatio())) vo.setDefaultAspectRatio("1:1");
+            if (Boolean.TRUE.equals(vo.getSupportsSizePreset()) && StrUtil.isBlank(vo.getDefaultSizeCode())) vo.setDefaultSizeCode("2K");
+            if (Boolean.TRUE.equals(vo.getSupportsAspectRatio()) && StrUtil.isBlank(vo.getDefaultAspectRatio())) vo.setDefaultAspectRatio("1:1");
         }
         else if (isVideo)
         {

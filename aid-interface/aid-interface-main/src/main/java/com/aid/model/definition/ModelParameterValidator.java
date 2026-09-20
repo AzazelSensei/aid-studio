@@ -200,6 +200,9 @@ public final class ModelParameterValidator {
             for (BigDecimal bound : new BigDecimal[] { field.getMinDurationSeconds(), field.getMaxDurationSeconds(), field.getMaxTotalDurationSeconds(), field.getMaxFileSizeMb() })
                 if (bound != null && (field.getMaterialRole() == null || bound.signum() < 0)) fail("请为素材配置合法限制");
             if (field.getMinDurationSeconds() != null && field.getMaxDurationSeconds() != null && field.getMinDurationSeconds().compareTo(field.getMaxDurationSeconds()) > 0) fail("素材时长范围无效");
+            if (field.getMaxFileSizeBytes() != null && (field.getMaterialRole() == null || field.getMaxFileSizeBytes() <= 0)) fail("素材字节上限无效");
+            if (field.getClipDurationSeconds() != null && (!Set.of("reference_video", "reference_audio").contains(field.getMaterialRole())
+                    || field.getClipDurationSeconds().signum() <= 0)) fail("素材裁切时长无效");
             if (field.getFormats() != null && !field.getFormats().isEmpty()) {
                 if (field.getMaterialRole() == null || field.getFormats().stream().anyMatch(format -> format == null || !format.matches("[A-Za-z0-9]+"))) fail("素材格式无效");
             }

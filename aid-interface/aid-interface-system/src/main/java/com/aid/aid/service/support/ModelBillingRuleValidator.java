@@ -63,6 +63,12 @@ public final class ModelBillingRuleValidator {
                 if (!hasValidMainPrice(sku, meterType, explicitMeterType)) {
                     reject(model, skuCode, meterType + "主价格缺失");
                 }
+                if (sku.hasNonNull("outputPixelsPerUnit") && (!"PER_IMAGE".equals(meterType)
+                        || !positive(sku.get("outputPixelsPerUnit"))
+                        || !sku.get("outputPixelsPerUnit").isIntegralNumber()
+                        || !sku.get("outputPixelsPerUnit").canConvertToLong())) {
+                    reject(model, skuCode, "输出像素计费单位无效");
+                }
                 if (sku.hasNonNull("fixedSurcharge") && (!nonNegative(sku.get("fixedSurcharge"))
                         || !("PER_CHAR".equals(meterType) || "SKU_PACKAGE".equals(meterType)))) {
                     reject(model, skuCode, "固定附加费口径无效");
