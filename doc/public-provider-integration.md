@@ -77,7 +77,9 @@ Use `ReferenceImageLimiter` (and the video/audio siblings). Fallback enums are i
 
 1. **Tasks** stay on `aid_media_task`. After async submit, `TaskDispatchService.initDispatchSchedule` stores the dispatch snapshot. `mediaTask.dispatch()` polls due tasks, moves expired callbacks to polling, reconciles stalled work, closes unsubmitted zombies and drains the queue.
 2. **Billing** is `IMediaBillingService`: `prepareBilling` → `settleBilling` or `refundBilling`. Text usage is `ProviderSubmitResult.usage`. Meter types are `TOKEN` / `PER_IMAGE` / `PER_SECOND` / `SKU_PACKAGE`. Do not compute charges inside the client.
-3. **Callbacks** reuse existing webhook helpers and `supportsCallback`. A callback only wakes dispatch (`scheduleImmediatePoll`). Terminal state comes from `query()` against the official status document.
+3. **Callbacks** reuse existing webhook helpers and `supportsCallback`. Not every webhook is wake-only:
+   - **Wake-only** (generic `CallbackController`, MiniMax H3): the payload is not a trusted official status contract, so the handler only schedules a poll (`scheduleImmediatePoll` / `scheduleImmediatePollIfWaitingCallback`). Terminal state then comes from `query()`.
+   - **Validated terminal** (`ViduCallbackServiceImpl`, `KlingCallbackServiceImpl`): after signature and payload checks, a known terminal status may build a `ProviderTaskResult` and call `taskCompletionService.completeTask(...)` directly. Non-terminal callbacks only mark upstream progress. Incomplete success payloads (for example no result URL) stay on polling.
 4. **Compensation**: `compensateProcessingTasks` (5/10/20/30s backoff), `drainQueuedCompensate` after restart, `mediaTask.billingCompensate()` for stuck freeze/settle/refund, `ossCompensate` when success has no stored URL. If `querySuccessful` is false, keep reconciling — do not fail the generation.
 
 `TextFailureBillingPolicy` decides text refund vs settle from whether the request was sent, whether HTTP was a final rejection, and whether token usage was observed.

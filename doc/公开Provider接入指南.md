@@ -89,7 +89,9 @@
 
 1. **任务**：`aid_media_task`。异步提交后由 `TaskDispatchService.initDispatchSchedule` 写入调度快照和 `nextPollTime`。主循环是 `mediaTask.dispatch()`：到期轮询、回调超时转轮询、存活对账、未提交僵尸收口、排队拉起。
 2. **计费**：`IMediaBillingService` 三阶段——`prepareBilling` 预冻结，成功 `settleBilling`，失败 `refundBilling`。文本用量走 `ProviderSubmitResult.usage`（`input_tokens` / `output_tokens`）。计费模式是模型上的 `FIXED` / `SKU`，计量类型是 `TOKEN` / `PER_IMAGE` / `PER_SECOND` / `SKU_PACKAGE`。价格规则写在模型计费配置里，不要在 Client 里算账。
-3. **回调**：厂商若支持 webhook，复用已有回调支持类和 `supportsCallback`。回调只唤醒调度（`scheduleImmediatePoll`），**不**在回调里确认终态。终态只来自 `query()` 读到的官方状态。
+3. **回调**：厂商若支持 webhook，复用已有回调支持类和 `supportsCallback`。回调分两类，不要一律写成只唤醒轮询：
+   - **仅唤醒轮询**（通用 `CallbackController`、MiniMax H3）：回调不是可信的官方状态契约，只调度轮询（`scheduleImmediatePoll` / `scheduleImmediatePollIfWaitingCallback`），终态仍来自 `query()`。
+   - **校验后终态收口**（`ViduCallbackServiceImpl`、`KlingCallbackServiceImpl`）：验签并确认官方终态后，可构造 `ProviderTaskResult` 并直接调用 `taskCompletionService.completeTask(...)`。中间态只登记进展。成功但缺少结果 URL 等不完整载荷仍交轮询。
 4. **重试与补偿**：处理中任务由 `compensateProcessingTasks` 按 5/10/20/30 秒退避对账；排队任务由 `drainQueuedCompensate` 在重启或完成事件丢失后拉起；计费中间态由 `mediaTask.billingCompensate()` 重试结算或退回；成功但未落存储由 `ossCompensate` 补齐。查询网络失败或未知状态必须把 `ProviderTaskResult.querySuccessful` 设为 `false`，继续对账，**不能**当成生成失败。
 
 文本失败是否扣费由 `TextFailureBillingPolicy` 根据是否真正发请求、HTTP 是否最终拒绝、是否观察到 token 用量决定。本地校验失败用 `notSent`，不要先扣再退。
